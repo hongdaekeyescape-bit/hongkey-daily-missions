@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: '홍키 데일리 미션',
   description: '홍대키이스케이프 매장 오늘의 할일 미션',
   manifest: '/manifest.webmanifest',
+  icons: { icon: '/icon.svg', apple: '/icon.svg' },
+  appleWebApp: { capable: true, title: '데일리미션', statusBarStyle: 'default' },
 }
 
 export const viewport: Viewport = {

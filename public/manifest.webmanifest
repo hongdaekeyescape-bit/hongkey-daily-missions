@@ -1,0 +1,17 @@
+{
+  "name": "홍키 데일리 미션",
+  "short_name": "데일리미션",
+  "description": "홍대키이스케이프 매장 오늘의 할일 미션",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e9fbf6",
+  "theme_color": "#2fd4b6",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
