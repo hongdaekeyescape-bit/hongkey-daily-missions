@@ -40,12 +40,9 @@ cp .env.example .env.local
 - `ADMIN_SECRET` — 쿠키 서명용 랜덤 문자열
 
 ### 2) DB 스키마 + Storage
-Supabase SQL 편집기에서 `supabase/migrations/0001_init.sql` 실행. 이어서 사진 버킷 생성:
+Supabase SQL 편집기에서 **`supabase/migrations/0001_init.sql` 전체를 붙여넣고 실행**하면 테이블 + 사진 버킷(`mission-photos`) + Storage 정책이 한 번에 만들어진다.
 
-```sql
-insert into storage.buckets (id, name, public) values ('mission-photos','mission-photos', true)
-on conflict (id) do nothing;
-```
+> 기존 `staff-schedule` Supabase 프로젝트를 재사용해도 된다(테이블 이름 충돌 없음). 새 프로젝트를 써도 무방.
 
 ### 3) 엑셀 시드(고정업무 41개)
 ```bash

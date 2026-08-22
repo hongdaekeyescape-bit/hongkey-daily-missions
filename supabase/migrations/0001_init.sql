@@ -47,6 +47,20 @@ create table if not exists completions (
 );
 create index if not exists idx_completions_date on completions (date);
 
--- Storage 버킷 'mission-photos'는 대시보드 또는 아래 SQL로 public 생성:
---   insert into storage.buckets (id, name, public) values ('mission-photos','mission-photos', true)
---   on conflict (id) do nothing;
+-- ── Storage: 미션 완료 사진 버킷 (public) ────────────────────────────
+insert into storage.buckets (id, name, public)
+values ('mission-photos', 'mission-photos', true)
+on conflict (id) do nothing;
+
+-- 내부 매장용: anon 키로 사진 읽기/올리기 허용 (버킷 한정)
+drop policy if exists "mission_photos_read" on storage.objects;
+create policy "mission_photos_read" on storage.objects
+  for select using (bucket_id = 'mission-photos');
+
+drop policy if exists "mission_photos_insert" on storage.objects;
+create policy "mission_photos_insert" on storage.objects
+  for insert with check (bucket_id = 'mission-photos');
+
+drop policy if exists "mission_photos_update" on storage.objects;
+create policy "mission_photos_update" on storage.objects
+  for update using (bucket_id = 'mission-photos');
