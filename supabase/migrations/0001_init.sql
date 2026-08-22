@@ -1,5 +1,6 @@
 -- 홍키 데일리 미션 초기 스키마
--- 내부 매장용, v1은 RLS 비활성(anon 키로 접근). 관리자 화면은 앱 서버의 PIN 게이트로 보호.
+-- 내부 매장용: 앱은 anon 키로 읽고 쓴다. 4개 테이블에 RLS + 전체 허용 정책.
+-- 관리자 화면은 앱 서버의 PIN 게이트로 별도 보호.
 
 create table if not exists staff (
   id uuid primary key default gen_random_uuid(),
@@ -46,6 +47,21 @@ create table if not exists completions (
   unique (date, source_type, source_id)
 );
 create index if not exists idx_completions_date on completions (date);
+
+-- ── RLS: anon 키로 CRUD 허용 (내부 매장용, 전체 허용) ──────────────────
+alter table staff enable row level security;
+alter table task_templates enable row level security;
+alter table assignments enable row level security;
+alter table completions enable row level security;
+
+drop policy if exists staff_all on staff;
+create policy staff_all on staff for all using (true) with check (true);
+drop policy if exists task_templates_all on task_templates;
+create policy task_templates_all on task_templates for all using (true) with check (true);
+drop policy if exists assignments_all on assignments;
+create policy assignments_all on assignments for all using (true) with check (true);
+drop policy if exists completions_all on completions;
+create policy completions_all on completions for all using (true) with check (true);
 
 -- ── Storage: 미션 완료 사진 버킷 (public) ────────────────────────────
 insert into storage.buckets (id, name, public)
