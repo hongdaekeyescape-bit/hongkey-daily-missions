@@ -22,6 +22,8 @@ export interface TaskTemplate {
   description?: string
   category: Category
   is_periodic: boolean
+  guide?: string // 업무 가이드(어떻게 하는지)
+  example_photo_url?: string // 사진 예시(이렇게 찍어주세요)
   sort: number
   active: boolean
 }
@@ -53,6 +55,9 @@ export interface Mission {
   is_periodic: boolean
   is_collab: boolean
   is_assignment: boolean
+  guide?: string
+  example_photo_url?: string
+  has_guide: boolean
   done: boolean
   done_by?: string
   photo_url?: string

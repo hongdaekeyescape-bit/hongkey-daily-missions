@@ -164,6 +164,7 @@ function MissionCardItem({ m, onTap }: { m: Mission; onTap: () => void }) {
             {m.is_periodic && <Badge text="🔁 정기" color="#f0609a" />}
             {m.is_collab && <Badge text="협업" color="#a78bfa" />}
             {m.is_assignment && <Badge text="약속" color="#ff7a66" />}
+            {m.has_guide && <Badge text="📖 가이드" color="#1fb89d" />}
           </span>
           <span className="text-xs text-ink-soft">
             {CATEGORY_LABELS[m.category]}
@@ -251,9 +252,32 @@ function CompleteSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-gray-200" />
-        <h3 className="text-lg font-extrabold">{mission.title}</h3>
+        <h3 className="font-display text-xl">{mission.title}</h3>
         {mission.description && (
           <p className="mt-1 text-sm text-ink-soft">{mission.description}</p>
+        )}
+
+        {(mission.guide || mission.example_photo_url) && (
+          <div className="mt-3 flex flex-col gap-3">
+            {mission.guide && (
+              <div>
+                <div className="mb-1 font-display text-sm text-mint-700">📖 업무 가이드</div>
+                <p className="whitespace-pre-line rounded-2xl border-2 border-mint-100 bg-mint-50 p-3 text-sm text-ink">
+                  {mission.guide}
+                </p>
+              </div>
+            )}
+            {mission.example_photo_url && (
+              <div>
+                <div className="mb-1 font-display text-sm text-pink-600">🖼 사진 예시</div>
+                <img
+                  src={mission.example_photo_url}
+                  alt="사진 예시"
+                  className="w-full rounded-2xl border-2 border-pink-100"
+                />
+              </div>
+            )}
+          </div>
         )}
 
         {mission.done ? (
@@ -313,7 +337,7 @@ function Celebrate() {
   return (
     <div className="animate-stamp mt-2 rounded-3xl bg-gradient-to-br from-mint-400 to-pink-400 p-6 text-center text-white shadow-lg">
       <div className="text-4xl">🎉</div>
-      <p className="mt-1 text-lg font-extrabold">오늘 미션 올클리어!</p>
+      <p className="font-display mt-1 text-xl">오늘 미션 올클리어!</p>
       <p className="text-sm opacity-90">수고했어요 👏</p>
     </div>
   )

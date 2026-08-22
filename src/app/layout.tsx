@@ -23,6 +23,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap"
+        />
+      </head>
       <body>
         <div className="mx-auto min-h-dvh w-full max-w-md px-4 pb-16 pt-6">
           {children}

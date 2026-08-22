@@ -53,7 +53,7 @@ export default function StartPage() {
     <main className="flex flex-col gap-6">
       <header className="pt-6 text-center">
         <div className="text-5xl">🧹✨</div>
-        <h1 className="mt-2 text-2xl font-extrabold tracking-tight">홍키 데일리 미션</h1>
+        <h1 className="font-display mt-2 text-3xl tracking-tight">홍키 데일리 미션</h1>
         <p className="mt-1 text-sm text-ink-soft">{greeting(hour)}! 오늘 할일을 미션으로 준비했어요.</p>
       </header>
 

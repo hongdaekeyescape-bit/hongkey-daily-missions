@@ -13,6 +13,7 @@ import {
   listAllTemplates,
   upsertTemplate,
 } from '@/data/templates'
+import { uploadExamplePhoto } from '@/data/photos'
 
 const SCOPE_LABELS: Record<Scope, string> = {
   open: '오픈',
@@ -34,6 +35,8 @@ const EMPTY = {
   description: '',
   category: 'etc' as Category,
   is_periodic: false,
+  guide: '',
+  example_photo_url: '',
 }
 
 export default function TemplatesPage() {
@@ -66,6 +69,8 @@ export default function TemplatesPage() {
         description: form.description.trim() || undefined,
         category: form.category,
         is_periodic: form.is_periodic,
+        guide: form.guide.trim() || undefined,
+        example_photo_url: form.example_photo_url || undefined,
         sort: 0,
         active: true,
       })
@@ -93,8 +98,25 @@ export default function TemplatesPage() {
       description: t.description ?? '',
       category: t.category,
       is_periodic: t.is_periodic,
+      guide: t.guide ?? '',
+      example_photo_url: t.example_photo_url ?? '',
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function onExampleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBusy(true)
+    setError(null)
+    try {
+      const url = await uploadExamplePhoto(file, form.id ?? `new-${Date.now()}`)
+      setForm((f) => ({ ...f, example_photo_url: url }))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -160,6 +182,33 @@ export default function TemplatesPage() {
               🔁 정기 업무
             </label>
           </div>
+          <textarea
+            value={form.guide}
+            onChange={(e) => setForm({ ...form, guide: e.target.value })}
+            placeholder="📖 업무 가이드 (어떻게 하는지, 줄바꿈으로 단계 구분)"
+            rows={3}
+            className="rounded-xl border-2 border-mint-200 px-3 py-2 text-sm"
+          />
+          <div className="rounded-xl border-2 border-pink-100 p-3">
+            <div className="mb-2 text-sm font-bold text-pink-600">🖼 사진 예시</div>
+            {form.example_photo_url ? (
+              <div className="flex flex-col gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.example_photo_url} alt="예시" className="w-full rounded-xl" />
+                <button
+                  onClick={() => setForm({ ...form, example_photo_url: '' })}
+                  className="self-start text-xs text-pink-600 underline"
+                >
+                  예시 사진 제거
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-pink-300 bg-pink-50 py-4 text-sm font-bold text-pink-600">
+                📷 예시 사진 업로드
+                <input type="file" accept="image/*" className="hidden" onChange={onExampleFile} />
+              </label>
+            )}
+          </div>
           {error && <p className="text-sm text-pink-600">{error}</p>}
           <div className="flex gap-2">
             <button
@@ -202,6 +251,7 @@ export default function TemplatesPage() {
                     <span className="font-semibold">
                       {t.is_periodic ? '🔁 ' : ''}
                       {t.title}
+                      {(t.guide || t.example_photo_url) && ' 📖'}
                     </span>
                     <span className="ml-auto flex gap-2">
                       <button onClick={() => edit(t)} className="text-xs text-mint-700 underline">

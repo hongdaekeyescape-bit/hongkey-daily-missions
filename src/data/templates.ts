@@ -1,7 +1,8 @@
 import { getClient } from '@/lib/supabase'
 import type { TaskTemplate } from '@/domain/types'
 
-const COLS = 'id,scope,weekday,title,description,category,is_periodic,sort,active'
+const COLS =
+  'id,scope,weekday,title,description,category,is_periodic,guide,example_photo_url,sort,active'
 
 export async function listActiveTemplates(): Promise<TaskTemplate[]> {
   const db = getClient()
@@ -35,6 +36,8 @@ export async function upsertTemplate(
     description: input.description ?? null,
     category: input.category,
     is_periodic: input.is_periodic,
+    guide: input.guide ?? null,
+    example_photo_url: input.example_photo_url ?? null,
     sort: input.sort,
     active: input.active,
   }

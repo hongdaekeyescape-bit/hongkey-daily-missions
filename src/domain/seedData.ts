@@ -7,7 +7,16 @@ export interface SeedTemplate {
   category: Category
   is_periodic: boolean
   description?: string
+  guide?: string
   sort: number
+}
+
+// 제목별 공통 업무 가이드(예시). 관리자 화면에서 편집·사진예시 추가 가능.
+const GUIDES: Record<string, string> = {
+  '홀 청소기': '1. 콘센트에 청소기 연결\n2. 홀 전체 바닥을 구석까지 밀기\n3. 소파/테마 입구 앞 먼지 집중\n4. 청소기 먼지통 비우고 제자리',
+  '매장 밖 청소': '1. 계단 천장·모서리 거미줄 밀대로 제거\n2. 반계단 위 사물함 윗면 먼지 닦기\n3. 현관 핑크문·유리 마른걸레로 마감',
+  '분리수거': '1. 종이/플라스틱/캔/일반 분리\n2. 라벨·이물질 제거 후 압축\n3. 분리수거장에 배출하고 자리 정리',
+  '물걸레': '1. 미온수+세제로 물걸레 준비\n2. 홀·복도 바닥 결 따라 닦기\n3. 걸레 헹궈 널어두기',
 }
 
 const OUTSIDE_DESC =
@@ -82,6 +91,7 @@ export const SEED_TEMPLATES: SeedTemplate[] = (() => {
       category,
       is_periodic: !!periodic,
       description,
+      guide: GUIDES[title],
       sort,
     }
   })

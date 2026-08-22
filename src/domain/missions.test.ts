@@ -123,6 +123,27 @@ describe('buildMissions', () => {
     expect(board.items[0].is_assignment).toBe(true)
   })
 
+  it('가이드/예시가 있으면 has_guide=true로 전달된다', () => {
+    const withGuide = [
+      T({ id: 'g1', scope: 'middle', title: '가이드있음', guide: '1. 하기' }),
+      T({ id: 'g2', scope: 'middle', title: '예시만', example_photo_url: 'https://x/e.jpg' }),
+      T({ id: 'g3', scope: 'middle', title: '둘다없음' }),
+    ]
+    const board = buildMissions({
+      date: '2026-08-19',
+      weekday: 3,
+      role: 'middle',
+      templates: withGuide,
+      assignments: [],
+      completions: [],
+    })
+    const byId = (id: string) => board.items.find((i) => i.source_id === id)!
+    expect(byId('g1').has_guide).toBe(true)
+    expect(byId('g1').guide).toBe('1. 하기')
+    expect(byId('g2').has_guide).toBe(true)
+    expect(byId('g3').has_guide).toBe(false)
+  })
+
   it('미완료를 완료보다 위로 정렬하고 카운트가 정확하다', () => {
     const completions: Completion[] = [
       { date: '2026-08-19', source_type: 'template', source_id: 'm1', done_by: 'a', photo_url: 'u', done_at: 'x' },

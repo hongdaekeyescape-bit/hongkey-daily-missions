@@ -19,6 +19,8 @@ create table if not exists task_templates (
   category text not null default 'etc'
     check (category in ('vacuum','mop','toilet','theme','recycle','outside','maintenance','etc')),
   is_periodic boolean not null default false,
+  guide text,
+  example_photo_url text,
   sort int not null default 0,
   active boolean not null default true,
   created_at timestamptz not null default now()
