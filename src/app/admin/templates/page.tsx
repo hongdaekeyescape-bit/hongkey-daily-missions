@@ -44,6 +44,9 @@ export default function TemplatesPage() {
   const [form, setForm] = useState({ ...EMPTY })
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [fScope, setFScope] = useState<Scope | 'all'>('all')
+  const [fWeekday, setFWeekday] = useState(0) // 0 = 전체
+  const [fQuery, setFQuery] = useState('')
 
   async function load() {
     try {
@@ -230,10 +233,74 @@ export default function TemplatesPage() {
         </div>
       </section>
 
+      {/* 필터 */}
+      <section className="rounded-2xl bg-white/70 p-3 shadow-sm">
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <select
+            value={fScope}
+            onChange={(e) => setFScope(e.target.value as Scope | 'all')}
+            className="rounded-xl border-2 border-mint-200 px-3 py-2 text-sm"
+          >
+            <option value="all">전체 근무형태</option>
+            {SCOPES.map((s) => (
+              <option key={s} value={s}>
+                {SCOPE_LABELS[s]}
+              </option>
+            ))}
+          </select>
+          <select
+            value={fWeekday}
+            onChange={(e) => setFWeekday(Number(e.target.value))}
+            className="rounded-xl border-2 border-mint-200 px-3 py-2 text-sm"
+          >
+            <option value={0}>전체 요일</option>
+            {WEEKDAYS.map((w, i) => (
+              <option key={i} value={i + 1}>
+                {w}요일
+              </option>
+            ))}
+          </select>
+        </div>
+        <input
+          value={fQuery}
+          onChange={(e) => setFQuery(e.target.value)}
+          placeholder="업무 이름 검색"
+          className="w-full rounded-xl border-2 border-mint-200 px-3 py-2 text-sm"
+        />
+        {(fScope !== 'all' || fWeekday !== 0 || fQuery.trim()) && (
+          <button
+            onClick={() => {
+              setFScope('all')
+              setFWeekday(0)
+              setFQuery('')
+            }}
+            className="mt-2 text-xs text-pink-600 underline"
+          >
+            필터 초기화
+          </button>
+        )}
+      </section>
+
       {/* 목록 */}
       <section className="flex flex-col gap-2">
-        {SCOPES.map((scope) => {
-          const items = rows.filter((r) => r.scope === scope)
+        {rows.filter(
+          (r) =>
+            (fScope === 'all' || r.scope === fScope) &&
+            (fWeekday === 0 || r.weekday === fWeekday) &&
+            (!fQuery.trim() || r.title.includes(fQuery.trim()))
+        ).length === 0 && (
+          <p className="rounded-2xl bg-white/70 p-4 text-center text-sm text-ink-soft shadow-sm">
+            조건에 맞는 업무가 없어요.
+          </p>
+        )}
+        {SCOPES.filter((s) => fScope === 'all' || s === fScope).map((scope) => {
+          const q = fQuery.trim()
+          const items = rows.filter(
+            (r) =>
+              r.scope === scope &&
+              (fWeekday === 0 || r.weekday === fWeekday) &&
+              (!q || r.title.includes(q))
+          )
           if (items.length === 0) return null
           return (
             <div key={scope} className="rounded-2xl bg-white/70 p-3 shadow-sm">
