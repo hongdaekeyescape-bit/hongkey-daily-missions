@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { guessRole, scopesForRole, isCollabScope } from './shift'
+import { guessRole, scopesForRole, isCollabScope, isDueOn } from './shift'
 
 describe('guessRole', () => {
   it('시간 경계로 근무형태를 추정한다', () => {
@@ -37,5 +37,22 @@ describe('isCollabScope', () => {
     expect(isCollabScope('open')).toBe(false)
     expect(isCollabScope('middle')).toBe(false)
     expect(isCollabScope('close')).toBe(false)
+  })
+})
+
+describe('isDueOn', () => {
+  it('always는 항상', () => {
+    expect([1, 2, 3, 4, 5].every((w) => isDueOn('always', w))).toBe(true)
+  })
+  it('biweekly는 짝수주(2·4)만', () => {
+    expect(isDueOn('biweekly', 1)).toBe(false)
+    expect(isDueOn('biweekly', 2)).toBe(true)
+    expect(isDueOn('biweekly', 3)).toBe(false)
+    expect(isDueOn('biweekly', 4)).toBe(true)
+  })
+  it('monthly_first는 1주만', () => {
+    expect(isDueOn('monthly_first', 1)).toBe(true)
+    expect(isDueOn('monthly_first', 2)).toBe(false)
+    expect(isDueOn('monthly_first', 4)).toBe(false)
   })
 })

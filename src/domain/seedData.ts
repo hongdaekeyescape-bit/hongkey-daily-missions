@@ -1,4 +1,4 @@
-import type { Category, Scope } from './types'
+import type { Category, Frequency, Scope } from './types'
 
 export interface SeedTemplate {
   scope: Scope
@@ -6,6 +6,7 @@ export interface SeedTemplate {
   title: string
   category: Category
   is_periodic: boolean
+  frequency: Frequency
   description?: string
   guide?: string
   sort: number
@@ -20,7 +21,7 @@ const GUIDES: Record<string, string> = {
 }
 
 const OUTSIDE_DESC =
-  '계단 거미줄 청소 / 반계단 위 사물함 위 청소 / 매장 입구 현관 핑크문 먼지청소'
+  '계단 거미줄 청소 / 반계단 위 사물함 위 청소 / 계단 및 현관 앞 바닥 청소 / 매장 입구 현관 핑크문 먼지청소'
 
 // 엑셀 "홍키 업무분담표" 전사. weekday: 1(월)~7(일)
 // (scope, weekday, title, category, periodic?, desc?)
@@ -50,6 +51,7 @@ const ROWS: Row[] = [
   ['middle', 4, '공기청정기 청소', 'maintenance'],
   ['middle', 5, '제빙기 청소', 'maintenance'],
   ['middle', 5, '초파리 퇴치기 + 끈끈이 교체', 'maintenance', true],
+  ['middle', 5, '환풍기 청소', 'maintenance', true],
   ['middle', 6, '매장 전체 먼지', 'vacuum'],
   ['middle', 6, '홀 청소기', 'vacuum'],
   ['middle', 7, '매장 밖 청소', 'outside', false, OUTSIDE_DESC],
@@ -84,12 +86,18 @@ export const SEED_TEMPLATES: SeedTemplate[] = (() => {
     const key = `${scope}:${weekday}`
     const sort = counter.get(key) ?? 0
     counter.set(key, sort + 1)
+    const frequency: Frequency = title.includes('은나노')
+      ? 'monthly_first'
+      : periodic
+        ? 'biweekly'
+        : 'always'
     return {
       scope,
       weekday,
       title,
       category,
       is_periodic: !!periodic,
+      frequency,
       description,
       guide: GUIDES[title],
       sort,

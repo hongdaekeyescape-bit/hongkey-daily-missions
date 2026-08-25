@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   CATEGORY_LABELS,
   type Category,
+  type Frequency,
   type Scope,
   type TaskTemplate,
 } from '@/domain/types'
@@ -27,6 +28,13 @@ const SCOPES = Object.keys(SCOPE_LABELS) as Scope[]
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일']
 const CATS = Object.keys(CATEGORY_LABELS) as Category[]
 
+const FREQ_LABELS: Record<Frequency, string> = {
+  always: '상시(매일 해당)',
+  biweekly: '짝수주(2·4주)',
+  monthly_first: '월 첫주 1회',
+}
+const FREQS = Object.keys(FREQ_LABELS) as Frequency[]
+
 const EMPTY = {
   id: undefined as string | undefined,
   scope: 'open' as Scope,
@@ -34,9 +42,9 @@ const EMPTY = {
   title: '',
   description: '',
   category: 'etc' as Category,
-  is_periodic: false,
+  frequency: 'always' as Frequency,
   guide: '',
-  example_photo_url: '',
+  guide_photos: [] as string[],
 }
 
 export default function TemplatesPage() {
@@ -71,9 +79,10 @@ export default function TemplatesPage() {
         title: form.title.trim(),
         description: form.description.trim() || undefined,
         category: form.category,
-        is_periodic: form.is_periodic,
+        is_periodic: form.frequency !== 'always',
+        frequency: form.frequency,
         guide: form.guide.trim() || undefined,
-        example_photo_url: form.example_photo_url || undefined,
+        guide_photos: form.guide_photos,
         sort: 0,
         active: true,
       })
@@ -100,26 +109,39 @@ export default function TemplatesPage() {
       title: t.title,
       description: t.description ?? '',
       category: t.category,
-      is_periodic: t.is_periodic,
+      frequency: t.frequency,
       guide: t.guide ?? '',
-      example_photo_url: t.example_photo_url ?? '',
+      guide_photos:
+        t.guide_photos && t.guide_photos.length
+          ? t.guide_photos
+          : t.example_photo_url
+            ? [t.example_photo_url]
+            : [],
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function onExampleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const list = e.target.files
+    if (!list || list.length === 0) return
+    e.target.value = ''
     setBusy(true)
     setError(null)
     try {
-      const url = await uploadExamplePhoto(file, form.id ?? `new-${Date.now()}`)
-      setForm((f) => ({ ...f, example_photo_url: url }))
+      const urls: string[] = []
+      for (const file of Array.from(list)) {
+        urls.push(await uploadExamplePhoto(file, form.id ?? `new-${Date.now()}`))
+      }
+      setForm((f) => ({ ...f, guide_photos: [...f.guide_photos, ...urls] }))
     } catch (err) {
       setError((err as Error).message)
     } finally {
       setBusy(false)
     }
+  }
+
+  function removeGuidePhoto(i: number) {
+    setForm((f) => ({ ...f, guide_photos: f.guide_photos.filter((_, idx) => idx !== i) }))
   }
 
   return (
@@ -176,14 +198,17 @@ export default function TemplatesPage() {
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-2 px-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.is_periodic}
-                onChange={(e) => setForm({ ...form, is_periodic: e.target.checked })}
-              />
-              🔁 정기 업무
-            </label>
+            <select
+              value={form.frequency}
+              onChange={(e) => setForm({ ...form, frequency: e.target.value as Frequency })}
+              className="rounded-xl border-2 border-mint-200 px-3 py-2 text-sm"
+            >
+              {FREQS.map((f) => (
+                <option key={f} value={f}>
+                  {FREQ_LABELS[f]}
+                </option>
+              ))}
+            </select>
           </div>
           <textarea
             value={form.guide}
@@ -193,24 +218,27 @@ export default function TemplatesPage() {
             className="rounded-xl border-2 border-mint-200 px-3 py-2 text-sm"
           />
           <div className="rounded-xl border-2 border-pink-100 p-3">
-            <div className="mb-2 text-sm font-bold text-pink-600">🖼 사진 예시</div>
-            {form.example_photo_url ? (
-              <div className="flex flex-col gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.example_photo_url} alt="예시" className="w-full rounded-xl" />
-                <button
-                  onClick={() => setForm({ ...form, example_photo_url: '' })}
-                  className="self-start text-xs text-pink-600 underline"
-                >
-                  예시 사진 제거
-                </button>
+            <div className="mb-2 text-sm font-bold text-pink-600">🖼 사진 예시 (여러 장 가능)</div>
+            {form.guide_photos.length > 0 && (
+              <div className="mb-2 grid grid-cols-3 gap-2">
+                {form.guide_photos.map((u, i) => (
+                  <div key={i} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={u} alt={`예시 ${i + 1}`} className="aspect-square w-full rounded-lg object-cover" />
+                    <button
+                      onClick={() => removeGuidePhoto(i)}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-pink-300 bg-pink-50 py-4 text-sm font-bold text-pink-600">
-                📷 예시 사진 업로드
-                <input type="file" accept="image/*" className="hidden" onChange={onExampleFile} />
-              </label>
             )}
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-pink-300 bg-pink-50 py-3 text-sm font-bold text-pink-600">
+              📷 {form.guide_photos.length > 0 ? '예시 사진 추가' : '예시 사진 업로드'}
+              <input type="file" accept="image/*" multiple className="hidden" onChange={onExampleFile} />
+            </label>
           </div>
           {error && <p className="text-sm text-pink-600">{error}</p>}
           <div className="flex gap-2">
@@ -316,9 +344,9 @@ export default function TemplatesPage() {
                       style={{ backgroundColor: CATEGORY_COLOR[t.category] }}
                     />
                     <span className="font-semibold">
-                      {t.is_periodic ? '🔁 ' : ''}
+                      {t.frequency === 'monthly_first' ? '📅 ' : t.frequency === 'biweekly' ? '🔁 ' : ''}
                       {t.title}
-                      {(t.guide || t.example_photo_url) && ' 📖'}
+                      {(t.guide || t.example_photo_url || (t.guide_photos && t.guide_photos.length > 0)) && ' 📖'}
                     </span>
                     <span className="ml-auto flex gap-2">
                       <button onClick={() => edit(t)} className="text-xs text-mint-700 underline">

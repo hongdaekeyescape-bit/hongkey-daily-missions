@@ -26,6 +26,7 @@ async function main() {
       description: t.description ?? null,
       category: t.category,
       is_periodic: t.is_periodic,
+      frequency: t.frequency,
       guide: t.guide ?? null,
       sort: t.sort,
       active: true,

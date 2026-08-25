@@ -6,7 +6,7 @@ import type {
   Role,
   TaskTemplate,
 } from './types'
-import { isCollabScope, scopesForRole } from './shift'
+import { isCollabScope, isDueOn, scopesForRole } from './shift'
 
 const CATEGORY_ORDER = [
   'vacuum',
@@ -32,12 +32,13 @@ function completionKey(type: string, id: string): string {
 export function buildMissions(input: {
   date: string
   weekday: number
+  weekOfMonth: number
   role: Role
   templates: TaskTemplate[]
   assignments: Assignment[]
   completions: Completion[]
 }): MissionBoard {
-  const { date, weekday, role, templates, assignments, completions } = input
+  const { date, weekday, weekOfMonth, role, templates, assignments, completions } = input
   const scopes = new Set(scopesForRole(role))
 
   const doneMap = new Map<string, Completion>()
@@ -51,7 +52,14 @@ export function buildMissions(input: {
     if (!t.active) continue
     if (!scopes.has(t.scope)) continue
     if (t.weekday !== weekday) continue
+    if (!isDueOn(t.frequency, weekOfMonth)) continue // 주기 규칙(짝수주/월첫주)
     const c = doneMap.get(completionKey('template', t.id))
+    const guidePhotos =
+      t.guide_photos && t.guide_photos.length
+        ? t.guide_photos
+        : t.example_photo_url
+          ? [t.example_photo_url]
+          : []
     items.push({
       source_type: 'template',
       source_id: t.id,
@@ -61,12 +69,14 @@ export function buildMissions(input: {
       is_periodic: t.is_periodic,
       is_collab: isCollabScope(t.scope),
       is_assignment: false,
+      frequency: t.frequency,
       guide: t.guide,
-      example_photo_url: t.example_photo_url,
-      has_guide: !!(t.guide || t.example_photo_url),
+      guide_photos: guidePhotos,
+      has_guide: !!(t.guide || guidePhotos.length),
       done: !!c,
       done_by: c?.done_by,
       photo_url: c?.photo_url,
+      photos: c?.photos && c.photos.length ? c.photos : c?.photo_url ? [c.photo_url] : [],
       done_at: c?.done_at,
     })
   }
@@ -85,10 +95,12 @@ export function buildMissions(input: {
       is_periodic: false,
       is_collab: false,
       is_assignment: true,
+      frequency: 'always',
       has_guide: false,
       done: !!c,
       done_by: c?.done_by,
       photo_url: c?.photo_url,
+      photos: c?.photos && c.photos.length ? c.photos : c?.photo_url ? [c.photo_url] : [],
       done_at: c?.done_at,
     })
   }

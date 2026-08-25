@@ -23,6 +23,12 @@ export function nowHourSeoul(now: Date = new Date()): number {
   return parseInt(h, 10) % 24
 }
 
+/** 월 내 주차: 1일~7일=1주, 8~14=2주, … (요일 등장 순서 기준). 입력 YYYY-MM-DD. */
+export function weekOfMonth(date: string): number {
+  const day = Number(date.split('-')[2])
+  return Math.ceil(day / 7)
+}
+
 /** 요일: 월=1 … 일=7. 입력은 YYYY-MM-DD. */
 export function weekdaySeoul(date: string): number {
   const [y, m, d] = date.split('-').map(Number)

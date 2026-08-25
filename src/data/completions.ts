@@ -1,7 +1,7 @@
 import { getClient } from '@/lib/supabase'
 import type { Completion, SourceType } from '@/domain/types'
 
-const COLS = 'id,date,source_type,source_id,done_by,photo_url,done_at'
+const COLS = 'id,date,source_type,source_id,done_by,photo_url,photos,done_at'
 
 export async function listCompletionsByDate(date: string): Promise<Completion[]> {
   const db = getClient()
@@ -15,7 +15,7 @@ export async function addCompletion(input: {
   source_type: SourceType
   source_id: string
   done_by: string
-  photo_url: string
+  photos: string[]
 }): Promise<{ ok: boolean; reason?: string }> {
   const db = getClient()
   const { error } = await db.from('completions').insert({
@@ -23,7 +23,8 @@ export async function addCompletion(input: {
     source_type: input.source_type,
     source_id: input.source_id,
     done_by: input.done_by,
-    photo_url: input.photo_url,
+    photo_url: input.photos[0],
+    photos: input.photos,
   })
   if (error) {
     // unique(date, source_type, source_id) 위반 = 이미 다른 근무자가 완료함

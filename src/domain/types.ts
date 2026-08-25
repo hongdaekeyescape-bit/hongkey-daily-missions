@@ -14,6 +14,8 @@ export type Category =
 
 export type SourceType = 'template' | 'assignment'
 
+export type Frequency = 'always' | 'biweekly' | 'monthly_first'
+
 export interface TaskTemplate {
   id: string
   scope: Scope
@@ -22,8 +24,10 @@ export interface TaskTemplate {
   description?: string
   category: Category
   is_periodic: boolean
+  frequency: Frequency // always=상시, biweekly=짝수주, monthly_first=월 첫주
   guide?: string // 업무 가이드(어떻게 하는지)
-  example_photo_url?: string // 사진 예시(이렇게 찍어주세요)
+  example_photo_url?: string // (구) 예시 사진 1장 — 하위호환
+  guide_photos?: string[] // 사진 예시 여러 장
   sort: number
   active: boolean
 }
@@ -42,7 +46,8 @@ export interface Completion {
   source_type: SourceType
   source_id: string
   done_by: string
-  photo_url: string
+  photo_url: string // 첫 사진(하위호환)
+  photos?: string[] // 완료 사진 여러 장
   done_at: string
 }
 
@@ -55,12 +60,14 @@ export interface Mission {
   is_periodic: boolean
   is_collab: boolean
   is_assignment: boolean
+  frequency: Frequency
   guide?: string
-  example_photo_url?: string
+  guide_photos?: string[]
   has_guide: boolean
   done: boolean
   done_by?: string
   photo_url?: string
+  photos?: string[]
   done_at?: string
 }
 

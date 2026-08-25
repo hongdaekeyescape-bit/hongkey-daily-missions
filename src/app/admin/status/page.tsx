@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { buildMissions } from '@/domain/missions'
 import { ROLE_LABELS, type MissionBoard, type Role } from '@/domain/types'
-import { todaySeoul, weekdaySeoul } from '@/lib/time'
+import { todaySeoul, weekdaySeoul, weekOfMonth } from '@/lib/time'
 import { CATEGORY_COLOR } from '@/lib/categoryColor'
 import { listActiveTemplates } from '@/data/templates'
 import { listAssignmentsByDate } from '@/data/assignments'
@@ -22,6 +22,7 @@ export default function StatusPage() {
     setBoards(null)
     try {
       const weekday = weekdaySeoul(d)
+      const wom = weekOfMonth(d)
       const [templates, assignments, completions] = await Promise.all([
         listActiveTemplates(),
         listAssignmentsByDate(d),
@@ -29,7 +30,15 @@ export default function StatusPage() {
       ])
       const result = {} as Record<Role, MissionBoard>
       for (const role of ROLES) {
-        result[role] = buildMissions({ date: d, weekday, role, templates, assignments, completions })
+        result[role] = buildMissions({
+          date: d,
+          weekday,
+          weekOfMonth: wom,
+          role,
+          templates,
+          assignments,
+          completions,
+        })
       }
       setBoards(result)
     } catch (e) {
@@ -84,16 +93,17 @@ export default function StatusPage() {
                         {m.title}
                       </span>
                       {m.done ? (
-                        <span className="ml-auto flex items-center gap-2 text-xs text-mint-600">
+                        <span className="ml-auto flex items-center gap-1 text-xs text-mint-600">
                           {m.done_by}
-                          {m.photo_url && (
+                          {(m.photos ?? []).map((u, i) => (
                             <img
-                              src={m.photo_url}
+                              key={i}
+                              src={u}
                               alt="사진"
-                              onClick={() => setZoom(m.photo_url!)}
+                              onClick={() => setZoom(u)}
                               className="h-8 w-8 cursor-pointer rounded object-cover"
                             />
-                          )}
+                          ))}
                         </span>
                       ) : (
                         <span className="ml-auto text-xs text-pink-500">미완료</span>

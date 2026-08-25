@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { weekdaySeoul, todaySeoul, nowHourSeoul } from './time'
+import { weekdaySeoul, todaySeoul, nowHourSeoul, weekOfMonth } from './time'
+
+describe('weekOfMonth', () => {
+  it('1~7일=1주, 8~14=2주, 15~21=3주, 22~28=4주', () => {
+    expect(weekOfMonth('2026-08-01')).toBe(1)
+    expect(weekOfMonth('2026-08-07')).toBe(1)
+    expect(weekOfMonth('2026-08-08')).toBe(2)
+    expect(weekOfMonth('2026-08-19')).toBe(3)
+    expect(weekOfMonth('2026-08-25')).toBe(4)
+  })
+})
 
 describe('weekdaySeoul', () => {
   it('월=1 … 일=7', () => {

@@ -10,7 +10,7 @@ import {
   type MissionBoard,
   type Role,
 } from '@/domain/types'
-import { todaySeoul, weekdaySeoul } from '@/lib/time'
+import { todaySeoul, weekdaySeoul, weekOfMonth } from '@/lib/time'
 import { CATEGORY_COLOR } from '@/lib/categoryColor'
 import { listActiveTemplates } from '@/data/templates'
 import { listAssignmentsByDate } from '@/data/assignments'
@@ -32,6 +32,7 @@ function MissionsInner() {
 
   const date = todaySeoul()
   const weekday = weekdaySeoul(date)
+  const wom = weekOfMonth(date)
 
   const [board, setBoard] = useState<MissionBoard | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -44,11 +45,13 @@ function MissionsInner() {
         listAssignmentsByDate(date),
         listCompletionsByDate(date),
       ])
-      setBoard(buildMissions({ date, weekday, role, templates, assignments, completions }))
+      setBoard(
+        buildMissions({ date, weekday, weekOfMonth: wom, role, templates, assignments, completions })
+      )
     } catch (e) {
       setError((e as Error).message ?? '미션을 불러오지 못했어요.')
     }
-  }, [date, weekday, role])
+  }, [date, weekday, wom, role])
 
   useEffect(() => {
     if (!name) {
@@ -161,7 +164,8 @@ function MissionCardItem({ m, onTap }: { m: Mission; onTap: () => void }) {
             <span className={'text-base font-bold ' + (m.done ? 'text-ink-soft line-through' : '')}>
               {m.title}
             </span>
-            {m.is_periodic && <Badge text="🔁 정기" color="#f0609a" />}
+            {m.frequency === 'biweekly' && <Badge text="🔁 격주" color="#f0609a" />}
+            {m.frequency === 'monthly_first' && <Badge text="📅 월1회" color="#f0609a" />}
             {m.is_collab && <Badge text="협업" color="#a78bfa" />}
             {m.is_assignment && <Badge text="약속" color="#ff7a66" />}
             {m.has_guide && <Badge text="📖 가이드" color="#1fb89d" />}
@@ -197,30 +201,40 @@ function CompleteSheet({
   onClose: () => void
   onChanged: () => void
 }) {
-  const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!file) return setPreview(null)
-    const url = URL.createObjectURL(file)
-    setPreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [file])
+    const urls = files.map((f) => URL.createObjectURL(f))
+    setPreviews(urls)
+    return () => urls.forEach((u) => URL.revokeObjectURL(u))
+  }, [files])
+
+  function addFiles(list: FileList | null) {
+    if (!list) return
+    setFiles((prev) => [...prev, ...Array.from(list)])
+  }
+  function removeFile(i: number) {
+    setFiles((prev) => prev.filter((_, idx) => idx !== i))
+  }
 
   async function complete() {
-    if (!file) return
+    if (files.length === 0) return
     setBusy(true)
     setMsg(null)
     try {
-      const photoUrl = await uploadMissionPhoto(file, date, mission.source_id)
+      const urls: string[] = []
+      for (const f of files) {
+        urls.push(await uploadMissionPhoto(f, date, mission.source_id))
+      }
       const res = await addCompletion({
         date,
         source_type: mission.source_type,
         source_id: mission.source_id,
         done_by: name,
-        photo_url: photoUrl,
+        photos: urls,
       })
       if (!res.ok) {
         setMsg(res.reason ?? '완료에 실패했어요.')
@@ -257,7 +271,7 @@ function CompleteSheet({
           <p className="mt-1 text-sm text-ink-soft">{mission.description}</p>
         )}
 
-        {(mission.guide || mission.example_photo_url) && (
+        {(mission.guide || (mission.guide_photos && mission.guide_photos.length > 0)) && (
           <div className="mt-3 flex flex-col gap-3">
             {mission.guide && (
               <div>
@@ -267,14 +281,19 @@ function CompleteSheet({
                 </p>
               </div>
             )}
-            {mission.example_photo_url && (
+            {mission.guide_photos && mission.guide_photos.length > 0 && (
               <div>
                 <div className="mb-1 font-display text-sm text-pink-600">🖼 사진 예시</div>
-                <img
-                  src={mission.example_photo_url}
-                  alt="사진 예시"
-                  className="w-full rounded-2xl border-2 border-pink-100"
-                />
+                <div className="flex flex-col gap-2">
+                  {mission.guide_photos.map((u, i) => (
+                    <img
+                      key={i}
+                      src={u}
+                      alt={`사진 예시 ${i + 1}`}
+                      className="w-full rounded-2xl border-2 border-pink-100"
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -282,9 +301,11 @@ function CompleteSheet({
 
         {mission.done ? (
           <div className="mt-4 flex flex-col gap-3">
-            {mission.photo_url && (
-              <img src={mission.photo_url} alt="완료 사진" className="w-full rounded-2xl" />
-            )}
+            <div className="grid grid-cols-2 gap-2">
+              {(mission.photos ?? []).map((u, i) => (
+                <img key={i} src={u} alt={`완료 사진 ${i + 1}`} className="w-full rounded-xl" />
+              ))}
+            </div>
             <p className="text-center text-sm font-semibold text-mint-600">
               ✅ {mission.done_by} 님이 완료했어요
             </p>
@@ -298,34 +319,45 @@ function CompleteSheet({
           </div>
         ) : (
           <div className="mt-4 flex flex-col gap-3">
-            {preview ? (
-              <img src={preview} alt="미리보기" className="w-full rounded-2xl" />
-            ) : (
-              <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-mint-300 bg-mint-50 text-mint-700">
-                <span className="text-4xl">📷</span>
-                <span className="text-sm font-bold">사진 촬영</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-              </label>
+            {previews.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {previews.map((p, i) => (
+                  <div key={i} className="relative">
+                    <img src={p} alt={`사진 ${i + 1}`} className="aspect-square w-full rounded-xl object-cover" />
+                    <button
+                      onClick={() => removeFile(i)}
+                      className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-pink-500 text-xs font-bold text-white shadow"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
+            <label className="flex h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-mint-300 bg-mint-50 text-mint-700">
+              <span className="text-3xl">📷</span>
+              <span className="text-sm font-bold">
+                {files.length === 0 ? '사진 촬영' : '＋ 사진 더 찍기'}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  addFiles(e.target.files)
+                  e.target.value = ''
+                }}
+              />
+            </label>
             {msg && <p className="text-center text-sm text-pink-600">{msg}</p>}
             <button
               onClick={complete}
-              disabled={!file || busy}
+              disabled={files.length === 0 || busy}
               className="rounded-full bg-mint-500 py-4 text-lg font-extrabold text-white shadow-lg disabled:opacity-40"
             >
-              {busy ? '올리는 중…' : '완료하기 ✅'}
+              {busy ? '올리는 중…' : `완료하기 ✅${files.length > 1 ? ` (${files.length}장)` : ''}`}
             </button>
-            {preview && (
-              <button onClick={() => setFile(null)} className="text-sm text-ink-soft underline">
-                사진 다시 찍기
-              </button>
-            )}
           </div>
         )}
       </div>

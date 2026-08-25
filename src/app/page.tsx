@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { guessRole } from '@/domain/shift'
 import { ROLE_LABELS, type Role } from '@/domain/types'
@@ -22,7 +22,6 @@ export default function StartPage() {
   const [autoRole, setAutoRole] = useState<Role>('open')
   const [staff, setStaff] = useState<Staff[]>([])
   const [name, setName] = useState('')
-  const [query, setQuery] = useState('')
   const [hour, setHour] = useState(9)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -38,11 +37,6 @@ export default function StartPage() {
       .catch((e) => setError(e.message ?? '직원 명단을 불러오지 못했어요.'))
       .finally(() => setLoading(false))
   }, [])
-
-  const filtered = useMemo(
-    () => staff.filter((s) => s.name.includes(query.trim())),
-    [staff, query]
-  )
 
   function start() {
     if (!name) return
@@ -96,25 +90,19 @@ export default function StartPage() {
       {/* 이름 선택 */}
       <section>
         <h2 className="mb-2 text-sm font-bold text-ink-soft">이름 선택</h2>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="이름 검색"
-          className="mb-3 w-full rounded-2xl border-2 border-pink-100 bg-white px-4 py-3 text-base outline-none focus:border-pink-400"
-        />
         {loading ? (
           <p className="py-6 text-center text-sm text-ink-soft">불러오는 중…</p>
         ) : error ? (
           <p className="rounded-2xl bg-pink-50 p-4 text-center text-sm text-pink-600">
             {error}
           </p>
-        ) : filtered.length === 0 ? (
+        ) : staff.length === 0 ? (
           <p className="py-6 text-center text-sm text-ink-soft">
-            {staff.length === 0 ? '등록된 직원이 없어요. 관리자 화면에서 추가해 주세요.' : '검색 결과가 없어요.'}
+            등록된 직원이 없어요. 관리자 화면에서 추가해 주세요.
           </p>
         ) : (
           <div className="grid grid-cols-3 gap-2">
-            {filtered.map((s) => {
+            {staff.map((s) => {
               const on = s.name === name
               return (
                 <button
