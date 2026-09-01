@@ -5,6 +5,7 @@ import AdminLogout from '@/components/AdminLogout'
 
 const TABS = [
   { href: '/admin/status', label: '완료현황' },
+  { href: '/admin/attendance', label: '출퇴근' },
   { href: '/admin/templates', label: '고정업무' },
   { href: '/admin/assignments', label: '약속업무' },
   { href: '/admin/staff', label: '직원명단' },

@@ -1,6 +1,23 @@
 import { getClient } from '@/lib/supabase'
+import type { AttendanceRecord } from '@/domain/attendance'
 
 export type AttendanceType = 'in' | 'out'
+
+/** 특정 월(YYYY-MM)의 모든 출퇴근 기록. */
+export async function getAttendanceForMonth(month: string): Promise<AttendanceRecord[]> {
+  const db = getClient()
+  const start = `${month}-01`
+  const [y, m] = month.split('-').map(Number)
+  const next = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`
+  const { data, error } = await db
+    .from('attendance')
+    .select('name,date,type,at')
+    .gte('date', start)
+    .lt('date', next)
+    .order('at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as AttendanceRecord[]
+}
 
 /** 오늘 출/퇴근 기록 시각(ISO) 조회. */
 export async function getTodayAttendance(
