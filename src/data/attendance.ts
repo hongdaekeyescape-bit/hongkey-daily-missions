@@ -67,6 +67,35 @@ export async function getTodayAttendance(
   return result
 }
 
+/** 특정 날짜의 모든 출퇴근 기록(공용 출퇴근 화면용). */
+export async function getAttendanceForDate(
+  date: string
+): Promise<{ name: string; type: AttendanceType; at: string }[]> {
+  const db = getClient()
+  const { data, error } = await db
+    .from('attendance')
+    .select('name,type,at')
+    .eq('date', date)
+  if (error) throw error
+  return (data ?? []) as { name: string; type: AttendanceType; at: string }[]
+}
+
+/** 출/퇴근 인증 취소(실수 정정). */
+export async function deleteAttendance(
+  name: string,
+  date: string,
+  type: AttendanceType
+): Promise<void> {
+  const db = getClient()
+  const { error } = await db
+    .from('attendance')
+    .delete()
+    .eq('name', name)
+    .eq('date', date)
+    .eq('type', type)
+  if (error) throw error
+}
+
 /** 출/퇴근 인증 기록. 이미 있으면 기존 시각 반환(중복 방지). */
 export async function recordAttendance(
   name: string,

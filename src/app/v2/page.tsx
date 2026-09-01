@@ -130,6 +130,13 @@ export default function StartPageV2() {
         {name ? `${name}님, 미션 시작 🚀` : '이름을 선택해 주세요'}
       </button>
 
+      <a
+        href="/v2/checkin"
+        className="rounded-full border-2 border-mint-200 bg-white py-3 text-center font-bold text-mint-700"
+      >
+        🖐 출퇴근 인증 (공용 · 여러 명)
+      </a>
+
       <div className="flex items-center justify-center gap-4 text-xs text-ink-soft">
         <a href="/" className="underline">← 기존 버전</a>
         <a href="/admin" className="underline">관리자</a>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { summarizeAttendance, type StaffAttendance } from '@/domain/attendance'
 import { getAttendanceForMonth } from '@/data/attendance'
+import { getBoolSetting, setBoolSetting } from '@/data/settings'
 import { hhmmSeoul, todaySeoul } from '@/lib/time'
 
 export default function AttendancePage() {
@@ -10,6 +11,21 @@ export default function AttendancePage() {
   const [rows, setRows] = useState<StaffAttendance[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(null)
+  const [warnOn, setWarnOn] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    getBoolSetting('warnings_enabled', true).then(setWarnOn)
+  }, [])
+
+  async function toggleWarn() {
+    const next = !(warnOn ?? true)
+    setWarnOn(next)
+    try {
+      await setBoolSetting('warnings_enabled', next)
+    } catch {
+      setWarnOn(!next)
+    }
+  }
 
   const load = useCallback(async (m: string) => {
     setRows(null)
@@ -56,6 +72,27 @@ export default function AttendancePage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between rounded-2xl bg-white/80 p-3 shadow-sm">
+        <div>
+          <div className="text-sm font-bold">미이행 경고 기능</div>
+          <div className="text-xs text-ink-soft">근무조 미완료 시 다음주 출근에 경고 팝업</div>
+        </div>
+        <button
+          onClick={toggleWarn}
+          className={
+            'relative h-7 w-12 rounded-full transition ' +
+            (warnOn ? 'bg-mint-500' : 'bg-gray-300')
+          }
+        >
+          <span
+            className={
+              'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ' +
+              (warnOn ? 'left-[22px]' : 'left-0.5')
+            }
+          />
+        </button>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <label className="text-sm font-bold text-ink-soft">월</label>
         <input

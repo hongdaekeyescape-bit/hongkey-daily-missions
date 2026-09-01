@@ -17,12 +17,14 @@ import { canAttend } from '@/lib/attendanceConfig'
 import {
   getTodayAttendance,
   recordAttendance,
+  deleteAttendance,
   listAllAttendanceIns,
   checkAndAckWarning,
   type AttendanceType,
 } from '@/data/attendance'
 import { listAllCompletions } from '@/data/completions'
 import { listAllAssignments } from '@/data/assignments'
+import { getBoolSetting } from '@/data/settings'
 import { computeRanking, computeMisses, type RankEntry } from '@/domain/scoring'
 import { listActiveTemplates } from '@/data/templates'
 import { listAssignmentsByDate } from '@/data/assignments'
@@ -92,6 +94,10 @@ function MissionsInner() {
         ])
         if (cancelled) return
         setRanking(computeRanking(allComp, templates, allAssign))
+
+        // 경고 기능이 꺼져 있으면 미이행/경고 표시 안 함
+        const warningsOn = await getBoolSetting('warnings_enabled', true)
+        if (cancelled || !warningsOn) return
 
         const misses = computeMisses({
           attendanceIns: allIns,
@@ -282,28 +288,49 @@ function AttendanceCard({
     }
   }
 
+  async function cancel(type: AttendanceType) {
+    if (!confirm(`${type === 'in' ? '출근' : '퇴근'} 인증을 취소할까요?`)) return
+    setBusy(type)
+    try {
+      await deleteAttendance(name, date, type)
+      setAtt((prev) => {
+        const next = { ...prev }
+        delete next[type]
+        return next
+      })
+    } catch (e) {
+      setMsg((e as Error).message ?? '취소에 실패했어요.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   function btn(type: AttendanceType, label: string, emoji: string) {
     const at = att[type]
     const done = !!at
+    if (done) {
+      return (
+        <button
+          onClick={() => cancel(type)}
+          disabled={busy !== null}
+          className="flex flex-col items-center gap-0.5 rounded-2xl border-2 border-mint-200 bg-mint-50 py-3 font-bold text-mint-700"
+        >
+          <span className="text-xl">✅</span>
+          <span className="text-sm">
+            {label} {hhmmSeoul(at!)}
+          </span>
+          <span className="text-[10px] text-pink-600 underline">잘못 눌렀으면 취소</span>
+        </button>
+      )
+    }
     return (
       <button
         onClick={() => tap(type)}
-        disabled={done || busy !== null}
-        className={
-          'flex flex-col items-center gap-0.5 rounded-2xl border-2 py-3 font-bold transition ' +
-          (done
-            ? 'border-mint-200 bg-mint-50 text-mint-700'
-            : 'border-transparent bg-mint-500 text-white shadow-md active:scale-[0.98] disabled:opacity-60')
-        }
+        disabled={busy !== null}
+        className="flex flex-col items-center gap-0.5 rounded-2xl bg-mint-500 py-3 font-bold text-white shadow-md transition active:scale-[0.98] disabled:opacity-60"
       >
-        <span className="text-xl">{done ? '✅' : emoji}</span>
-        {done ? (
-          <span className="text-sm">
-            {label} {hhmmSeoul(at!)} 인증됨
-          </span>
-        ) : (
-          <span className="text-sm">{busy === type ? '기록 중…' : `${label} 인증하기`}</span>
-        )}
+        <span className="text-xl">{emoji}</span>
+        <span className="text-sm">{busy === type ? '기록 중…' : `${label} 인증하기`}</span>
       </button>
     )
   }
