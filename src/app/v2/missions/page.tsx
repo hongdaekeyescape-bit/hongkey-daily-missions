@@ -10,9 +10,11 @@ import {
   type MissionBoard,
   type Role,
 } from '@/domain/types'
-import { todaySeoul, weekdaySeoul, weekOfMonth } from '@/lib/time'
+import { todaySeoul, weekdaySeoul, weekOfMonth, hhmmSeoul } from '@/lib/time'
 import { CATEGORY_COLOR } from '@/lib/categoryColor'
 import { compressImage } from '@/lib/image'
+import { canAttend } from '@/lib/attendanceConfig'
+import { getTodayAttendance, recordAttendance, type AttendanceType } from '@/data/attendance'
 import { listActiveTemplates } from '@/data/templates'
 import { listAssignmentsByDate } from '@/data/assignments'
 import {
@@ -86,6 +88,8 @@ function MissionsInner() {
         <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-600">v2</span>
       </header>
 
+      {canAttend(name) && <AttendanceCard name={name} date={date} />}
+
       {error ? (
         <p className="rounded-2xl bg-pink-50 p-4 text-center text-sm text-pink-600">{error}</p>
       ) : !board ? (
@@ -156,6 +160,87 @@ function MissionsInner() {
         </div>
       )}
     </main>
+  )
+}
+
+function AttendanceCard({ name, date }: { name: string; date: string }) {
+  const [att, setAtt] = useState<{ in?: string; out?: string }>({})
+  const [busy, setBusy] = useState<AttendanceType | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      setAtt(await getTodayAttendance(name, date))
+    } catch (e) {
+      setMsg((e as Error).message)
+    } finally {
+      setLoaded(true)
+    }
+  }, [name, date])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function tap(type: AttendanceType) {
+    setBusy(type)
+    setMsg(null)
+    try {
+      const r = await recordAttendance(name, date, type)
+      setAtt((prev) => ({ ...prev, [type]: r.at }))
+      if (r.already) setMsg(type === 'in' ? '이미 출근 인증됨' : '이미 퇴근 인증됨')
+    } catch (e) {
+      setMsg((e as Error).message ?? '인증에 실패했어요.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  function btn(type: AttendanceType, label: string, emoji: string) {
+    const at = att[type]
+    const done = !!at
+    return (
+      <button
+        onClick={() => tap(type)}
+        disabled={done || busy !== null}
+        className={
+          'flex flex-col items-center gap-0.5 rounded-2xl border-2 py-3 font-bold transition ' +
+          (done
+            ? 'border-mint-200 bg-mint-50 text-mint-700'
+            : 'border-transparent bg-mint-500 text-white shadow-md active:scale-[0.98] disabled:opacity-60')
+        }
+      >
+        <span className="text-xl">{done ? '✅' : emoji}</span>
+        {done ? (
+          <span className="text-sm">
+            {label} {hhmmSeoul(at!)} 인증됨
+          </span>
+        ) : (
+          <span className="text-sm">{busy === type ? '기록 중…' : `${label} 인증하기`}</span>
+        )}
+      </button>
+    )
+  }
+
+  return (
+    <section className="rounded-2xl bg-white p-4 shadow-sm">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="font-display text-sm text-ink">🖐 출퇴근 인증</span>
+        <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-600">
+          지문 대체 · 테스트
+        </span>
+      </div>
+      {!loaded ? (
+        <p className="py-2 text-center text-sm text-ink-soft">불러오는 중…</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {btn('in', '출근', '🌅')}
+          {btn('out', '퇴근', '🌙')}
+        </div>
+      )}
+      {msg && <p className="mt-2 text-center text-xs text-pink-600">{msg}</p>}
+    </section>
   )
 }
 

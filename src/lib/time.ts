@@ -29,6 +29,16 @@ export function weekOfMonth(date: string): number {
   return Math.ceil(day / 7)
 }
 
+/** ISO 시각 → HH:MM (Asia/Seoul). */
+export function hhmmSeoul(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: SEOUL,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso))
+}
+
 /** 요일: 월=1 … 일=7. 입력은 YYYY-MM-DD. */
 export function weekdaySeoul(date: string): number {
   const [y, m, d] = date.split('-').map(Number)
