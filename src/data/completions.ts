@@ -34,6 +34,27 @@ export async function addCompletion(input: {
   return { ok: true }
 }
 
+/** 완료 사진 목록을 교체(개별 추가/삭제). 비면 완료 취소(행 삭제). */
+export async function setCompletionPhotos(
+  date: string,
+  source_type: SourceType,
+  source_id: string,
+  photos: string[]
+): Promise<void> {
+  const db = getClient()
+  if (photos.length === 0) {
+    await deleteCompletionBySource(date, source_type, source_id)
+    return
+  }
+  const { error } = await db
+    .from('completions')
+    .update({ photos, photo_url: photos[0] })
+    .eq('date', date)
+    .eq('source_type', source_type)
+    .eq('source_id', source_id)
+  if (error) throw error
+}
+
 /** 완료 취소(재촬영). id로 삭제. */
 export async function deleteCompletionBySource(
   date: string,

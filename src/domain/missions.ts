@@ -72,6 +72,7 @@ export function buildMissions(input: {
       frequency: t.frequency,
       guide: t.guide,
       guide_photos: guidePhotos,
+      guide_captions: t.guide_captions ?? [],
       has_guide: !!(t.guide || guidePhotos.length),
       done: !!c,
       done_by: c?.done_by,

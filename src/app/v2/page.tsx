@@ -16,7 +16,7 @@ function greeting(hour: number): string {
   return '마무리까지 힘내요'
 }
 
-export default function StartPage() {
+export default function StartPageV2() {
   const router = useRouter()
   const [role, setRole] = useState<Role>('open')
   const [autoRole, setAutoRole] = useState<Role>('open')
@@ -40,7 +40,7 @@ export default function StartPage() {
 
   function start() {
     if (!name) return
-    router.push(`/missions?role=${role}&name=${encodeURIComponent(name)}`)
+    router.push(`/v2/missions?role=${role}&name=${encodeURIComponent(name)}`)
   }
 
   return (
@@ -48,10 +48,12 @@ export default function StartPage() {
       <header className="pt-6 text-center">
         <div className="text-5xl">🧹✨</div>
         <h1 className="font-display mt-2 text-3xl tracking-tight">홍키 데일리 미션</h1>
+        <span className="mt-1 inline-block rounded-full bg-pink-500 px-2.5 py-0.5 font-display text-xs text-white">
+          NEW 체험판 v2
+        </span>
         <p className="mt-1 text-sm text-ink-soft">{greeting(hour)}! 오늘 할일을 미션으로 준비했어요.</p>
       </header>
 
-      {/* 근무형태 (자동 추정, 탭해서 변경) */}
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-bold text-ink-soft">오늘 근무형태</h2>
@@ -87,15 +89,12 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* 이름 선택 */}
       <section>
         <h2 className="mb-2 text-sm font-bold text-ink-soft">이름 선택</h2>
         {loading ? (
           <p className="py-6 text-center text-sm text-ink-soft">불러오는 중…</p>
         ) : error ? (
-          <p className="rounded-2xl bg-pink-50 p-4 text-center text-sm text-pink-600">
-            {error}
-          </p>
+          <p className="rounded-2xl bg-pink-50 p-4 text-center text-sm text-pink-600">{error}</p>
         ) : staff.length === 0 ? (
           <p className="py-6 text-center text-sm text-ink-soft">
             등록된 직원이 없어요. 관리자 화면에서 추가해 주세요.
@@ -132,7 +131,7 @@ export default function StartPage() {
       </button>
 
       <div className="flex items-center justify-center gap-4 text-xs text-ink-soft">
-        <a href="/v2" className="font-semibold text-pink-600 underline">🧪 새 버전(v2) 체험 →</a>
+        <a href="/" className="underline">← 기존 버전</a>
         <a href="/admin" className="underline">관리자</a>
       </div>
     </main>

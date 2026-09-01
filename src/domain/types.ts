@@ -28,6 +28,7 @@ export interface TaskTemplate {
   guide?: string // 업무 가이드(어떻게 하는지)
   example_photo_url?: string // (구) 예시 사진 1장 — 하위호환
   guide_photos?: string[] // 사진 예시 여러 장
+  guide_captions?: string[] // 예시 사진 캡션(인덱스 정렬)
   sort: number
   active: boolean
 }
@@ -63,6 +64,7 @@ export interface Mission {
   frequency: Frequency
   guide?: string
   guide_photos?: string[]
+  guide_captions?: string[]
   has_guide: boolean
   done: boolean
   done_by?: string

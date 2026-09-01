@@ -45,6 +45,7 @@ const EMPTY = {
   frequency: 'always' as Frequency,
   guide: '',
   guide_photos: [] as string[],
+  guide_captions: [] as string[],
 }
 
 export default function TemplatesPage() {
@@ -83,6 +84,7 @@ export default function TemplatesPage() {
         frequency: form.frequency,
         guide: form.guide.trim() || undefined,
         guide_photos: form.guide_photos,
+        guide_captions: form.guide_captions,
         sort: 0,
         active: true,
       })
@@ -117,6 +119,7 @@ export default function TemplatesPage() {
           : t.example_photo_url
             ? [t.example_photo_url]
             : [],
+      guide_captions: t.guide_captions ?? [],
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -132,7 +135,11 @@ export default function TemplatesPage() {
       for (const file of Array.from(list)) {
         urls.push(await uploadExamplePhoto(file, form.id ?? `new-${Date.now()}`))
       }
-      setForm((f) => ({ ...f, guide_photos: [...f.guide_photos, ...urls] }))
+      setForm((f) => ({
+        ...f,
+        guide_photos: [...f.guide_photos, ...urls],
+        guide_captions: [...f.guide_captions, ...urls.map(() => '')],
+      }))
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -141,7 +148,18 @@ export default function TemplatesPage() {
   }
 
   function removeGuidePhoto(i: number) {
-    setForm((f) => ({ ...f, guide_photos: f.guide_photos.filter((_, idx) => idx !== i) }))
+    setForm((f) => ({
+      ...f,
+      guide_photos: f.guide_photos.filter((_, idx) => idx !== i),
+      guide_captions: f.guide_captions.filter((_, idx) => idx !== i),
+    }))
+  }
+
+  function setCaption(i: number, v: string) {
+    setForm((f) => ({
+      ...f,
+      guide_captions: f.guide_photos.map((_, idx) => (idx === i ? v : f.guide_captions[idx] ?? '')),
+    }))
   }
 
   return (
@@ -220,17 +238,25 @@ export default function TemplatesPage() {
           <div className="rounded-xl border-2 border-pink-100 p-3">
             <div className="mb-2 text-sm font-bold text-pink-600">🖼 사진 예시 (여러 장 가능)</div>
             {form.guide_photos.length > 0 && (
-              <div className="mb-2 grid grid-cols-3 gap-2">
+              <div className="mb-2 flex flex-col gap-2">
                 {form.guide_photos.map((u, i) => (
-                  <div key={i} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={u} alt={`예시 ${i + 1}`} className="aspect-square w-full rounded-lg object-cover" />
-                    <button
-                      onClick={() => removeGuidePhoto(i)}
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white"
-                    >
-                      ✕
-                    </button>
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="relative shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={u} alt={`예시 ${i + 1}`} className="h-14 w-14 rounded-lg object-cover" />
+                      <button
+                        onClick={() => removeGuidePhoto(i)}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <input
+                      value={form.guide_captions[i] ?? ''}
+                      onChange={(e) => setCaption(i, e.target.value)}
+                      placeholder="캡션(선택) 예: 현관은 이렇게"
+                      className="flex-1 rounded-lg border-2 border-pink-100 px-2 py-1.5 text-xs"
+                    />
                   </div>
                 ))}
               </div>
