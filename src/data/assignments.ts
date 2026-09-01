@@ -14,6 +14,14 @@ export async function listAssignmentsByDate(date: string): Promise<Assignment[]>
   return (data ?? []) as Assignment[]
 }
 
+/** 전체 약속업무 — 순위/미이행 집계용. */
+export async function listAllAssignments(): Promise<Assignment[]> {
+  const db = getClient()
+  const { data, error } = await db.from('assignments').select(COLS)
+  if (error) throw error
+  return (data ?? []) as Assignment[]
+}
+
 export async function addAssignment(input: {
   date: string
   role: Role

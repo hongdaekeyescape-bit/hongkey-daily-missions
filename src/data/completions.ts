@@ -10,6 +10,14 @@ export async function listCompletionsByDate(date: string): Promise<Completion[]>
   return (data ?? []) as Completion[]
 }
 
+/** 전체 완료 기록 — 순위/미이행 집계용. */
+export async function listAllCompletions(): Promise<Completion[]> {
+  const db = getClient()
+  const { data, error } = await db.from('completions').select(COLS)
+  if (error) throw error
+  return (data ?? []) as Completion[]
+}
+
 export async function addCompletion(input: {
   date: string
   source_type: SourceType

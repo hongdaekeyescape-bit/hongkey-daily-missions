@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import DeviceGate from '@/components/DeviceGate'
 
 export const metadata: Metadata = {
   title: '홍키 데일리 미션',
@@ -33,7 +34,7 @@ export default function RootLayout({
       </head>
       <body>
         <div className="mx-auto min-h-dvh w-full max-w-md px-4 pb-16 pt-6">
-          {children}
+          <DeviceGate>{children}</DeviceGate>
         </div>
       </body>
     </html>

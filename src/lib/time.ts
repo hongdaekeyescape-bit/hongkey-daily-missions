@@ -29,6 +29,27 @@ export function weekOfMonth(date: string): number {
   return Math.ceil(day / 7)
 }
 
+/** YYYY-MM-DD에 n일 더한 날짜(YYYY-MM-DD). */
+export function addDays(date: string, n: number): string {
+  const [y, m, d] = date.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d + n))
+  return dt.toISOString().slice(0, 10)
+}
+
+/** ISO 주차 문자열: 2026-W36 형태. */
+export function isoWeek(date: string): string {
+  const [y, m, d] = date.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  const day = (dt.getUTCDay() + 6) % 7 // 월=0 … 일=6
+  dt.setUTCDate(dt.getUTCDate() - day + 3) // 그 주의 목요일로 이동
+  const isoYear = dt.getUTCFullYear()
+  const firstThu = new Date(Date.UTC(isoYear, 0, 4)) // 1월 4일은 항상 첫째 주
+  const firstThuDay = (firstThu.getUTCDay() + 6) % 7
+  firstThu.setUTCDate(firstThu.getUTCDate() - firstThuDay + 3)
+  const weekNum = 1 + Math.round((dt.getTime() - firstThu.getTime()) / (7 * 86400000))
+  return `${isoYear}-W${String(weekNum).padStart(2, '0')}`
+}
+
 /** ISO 시각 → HH:MM (Asia/Seoul). */
 export function hhmmSeoul(iso: string): string {
   return new Intl.DateTimeFormat('en-GB', {

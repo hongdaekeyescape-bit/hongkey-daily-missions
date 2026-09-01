@@ -10,11 +10,20 @@ import {
   type MissionBoard,
   type Role,
 } from '@/domain/types'
-import { todaySeoul, weekdaySeoul, weekOfMonth, hhmmSeoul } from '@/lib/time'
+import { todaySeoul, weekdaySeoul, weekOfMonth, hhmmSeoul, isoWeek, addDays } from '@/lib/time'
 import { CATEGORY_COLOR } from '@/lib/categoryColor'
 import { compressImage } from '@/lib/image'
 import { canAttend } from '@/lib/attendanceConfig'
-import { getTodayAttendance, recordAttendance, type AttendanceType } from '@/data/attendance'
+import {
+  getTodayAttendance,
+  recordAttendance,
+  listAllAttendanceIns,
+  checkAndAckWarning,
+  type AttendanceType,
+} from '@/data/attendance'
+import { listAllCompletions } from '@/data/completions'
+import { listAllAssignments } from '@/data/assignments'
+import { computeRanking, computeMisses, type RankEntry } from '@/domain/scoring'
 import { listActiveTemplates } from '@/data/templates'
 import { listAssignmentsByDate } from '@/data/assignments'
 import {
@@ -42,6 +51,9 @@ function MissionsInner() {
   const [active, setActive] = useState<Mission | null>(null)
   const [showDone, setShowDone] = useState(false)
   const [zoom, setZoom] = useState<string | null>(null)
+  const [ranking, setRanking] = useState<RankEntry[] | null>(null)
+  const [totalMisses, setTotalMisses] = useState(0)
+  const [warning, setWarning] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -66,6 +78,46 @@ function MissionsInner() {
     load()
   }, [name, load, router])
 
+  // 순위 + 미이행/경고 집계 (전체 데이터)
+  useEffect(() => {
+    if (!name) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [templates, allComp, allAssign, allIns] = await Promise.all([
+          listActiveTemplates(),
+          listAllCompletions(),
+          listAllAssignments(),
+          listAllAttendanceIns(),
+        ])
+        if (cancelled) return
+        setRanking(computeRanking(allComp, templates, allAssign))
+
+        const misses = computeMisses({
+          attendanceIns: allIns,
+          templates,
+          assignments: allAssign,
+          completions: allComp,
+        })
+        const mine = misses.get(name) ?? new Set<string>()
+        setTotalMisses(mine.size)
+
+        // 지난주 미이행이 있으면 이번 주 첫 접속에 1회 경고
+        const lastWeek = isoWeek(addDays(date, -7))
+        const lastWeekCount = [...mine].filter((d) => isoWeek(d) === lastWeek).length
+        if (lastWeekCount > 0) {
+          const r = await checkAndAckWarning(name, lastWeek)
+          if (!cancelled && r === 'need') setWarning(lastWeekCount)
+        }
+      } catch {
+        /* 순위/경고 실패는 무시(미션 사용에 지장 없게) */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [name, date])
+
   const { todo, done } = useMemo(() => {
     const items = board?.items ?? []
     return { todo: items.filter((i) => !i.done), done: items.filter((i) => i.done) }
@@ -88,7 +140,9 @@ function MissionsInner() {
         <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-600">v2</span>
       </header>
 
-      {canAttend(name) && <AttendanceCard name={name} date={date} />}
+      {canAttend(name) && (
+        <AttendanceCard name={name} date={date} role={role} misses={totalMisses} />
+      )}
 
       {error ? (
         <p className="rounded-2xl bg-pink-50 p-4 text-center text-sm text-pink-600">{error}</p>
@@ -137,6 +191,27 @@ function MissionsInner() {
         </>
       )}
 
+      <RankingList entries={ranking} me={name} />
+
+      {warning !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
+          <div className="w-full max-w-xs rounded-3xl bg-white p-6 text-center shadow-2xl">
+            <div className="text-5xl">⚠️</div>
+            <h3 className="font-display mt-2 text-lg">지난주 미이행 알림</h3>
+            <p className="mt-2 text-sm text-ink-soft">
+              지난주 근무 중 <b className="text-pink-600">{warning}일</b>, 근무조 미션이
+              마무리되지 않았어요. 이번 주는 끝까지 완료해 주세요! 🙏
+            </p>
+            <button
+              onClick={() => setWarning(null)}
+              className="mt-4 w-full rounded-full bg-mint-500 py-3 font-bold text-white"
+            >
+              확인했어요
+            </button>
+          </div>
+        </div>
+      )}
+
       {active && (
         <CompleteSheet
           mission={active}
@@ -163,7 +238,17 @@ function MissionsInner() {
   )
 }
 
-function AttendanceCard({ name, date }: { name: string; date: string }) {
+function AttendanceCard({
+  name,
+  date,
+  role,
+  misses,
+}: {
+  name: string
+  date: string
+  role: Role
+  misses: number
+}) {
   const [att, setAtt] = useState<{ in?: string; out?: string }>({})
   const [busy, setBusy] = useState<AttendanceType | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -187,7 +272,7 @@ function AttendanceCard({ name, date }: { name: string; date: string }) {
     setBusy(type)
     setMsg(null)
     try {
-      const r = await recordAttendance(name, date, type)
+      const r = await recordAttendance(name, date, type, role)
       setAtt((prev) => ({ ...prev, [type]: r.at }))
       if (r.already) setMsg(type === 'in' ? '이미 출근 인증됨' : '이미 퇴근 인증됨')
     } catch (e) {
@@ -230,6 +315,11 @@ function AttendanceCard({ name, date }: { name: string; date: string }) {
         <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-600">
           지문 대체 · 테스트
         </span>
+        {misses > 0 && (
+          <span className="ml-auto rounded-full bg-pink-500 px-2 py-0.5 text-[10px] font-bold text-white">
+            누적 미이행 {misses}회
+          </span>
+        )}
       </div>
       {!loaded ? (
         <p className="py-2 text-center text-sm text-ink-soft">불러오는 중…</p>
@@ -617,6 +707,51 @@ function CompleteSheet({
         </div>
       </div>
     </div>
+  )
+}
+
+function RankingList({ entries, me }: { entries: RankEntry[] | null; me: string }) {
+  const medal = (rank: number) =>
+    rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}위`
+
+  return (
+    <section className="mt-4 rounded-2xl bg-white/80 p-4 shadow-sm">
+      <div className="mb-1 text-center">
+        <div className="font-display text-lg">🏆 홍키 클린 스페셜리스트</div>
+        <div className="text-xs text-ink-soft">완수율 순위 · 전체 누적</div>
+      </div>
+      {!entries ? (
+        <p className="py-4 text-center text-sm text-ink-soft">집계 중…</p>
+      ) : entries.length === 0 ? (
+        <p className="py-4 text-center text-sm text-ink-soft">아직 기록이 없어요. 첫 완료의 주인공이 되어보세요!</p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {entries.map((e) => {
+            const mine = e.name === me
+            return (
+              <li
+                key={e.name}
+                className={
+                  'flex items-center gap-2 rounded-xl px-3 py-2 text-sm ' +
+                  (mine ? 'bg-mint-50 font-bold' : '')
+                }
+              >
+                <span className="w-8 shrink-0 text-center font-display">{medal(e.rank)}</span>
+                <span className="flex-1 truncate">
+                  {e.name}
+                  {mine && ' (나)'}
+                </span>
+                <span className="text-xs text-ink-soft">{e.tasks}건</span>
+                <span className="w-12 text-right font-display text-mint-600">{e.points.toFixed(2)}</span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <p className="mt-2 text-center text-[11px] text-ink-soft">
+        하루 1점을 그날 업무 수로 나눠, 사진 올려 완료한 만큼 점수가 쌓여요.
+      </p>
+    </section>
   )
 }
 

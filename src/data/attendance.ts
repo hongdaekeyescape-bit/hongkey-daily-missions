@@ -1,7 +1,38 @@
 import { getClient } from '@/lib/supabase'
 import type { AttendanceRecord } from '@/domain/attendance'
+import type { Role } from '@/domain/types'
 
 export type AttendanceType = 'in' | 'out'
+
+/** 전체 출근(in) 기록 — 미이행 판정용. */
+export async function listAllAttendanceIns(): Promise<
+  { name: string; date: string; role: Role | null }[]
+> {
+  const db = getClient()
+  const { data, error } = await db
+    .from('attendance')
+    .select('name,date,role')
+    .eq('type', 'in')
+  if (error) throw error
+  return (data ?? []) as { name: string; date: string; role: Role | null }[]
+}
+
+/** 지난주 미이행이 있고 아직 경고 안 봤으면 표시 후 기록. */
+export async function checkAndAckWarning(
+  name: string,
+  week: string
+): Promise<'need' | 'seen'> {
+  const db = getClient()
+  const { data } = await db
+    .from('warning_ack')
+    .select('name')
+    .eq('name', name)
+    .eq('week', week)
+    .maybeSingle()
+  if (data) return 'seen'
+  await db.from('warning_ack').insert({ name, week })
+  return 'need'
+}
 
 /** 특정 월(YYYY-MM)의 모든 출퇴근 기록. */
 export async function getAttendanceForMonth(month: string): Promise<AttendanceRecord[]> {
@@ -40,12 +71,13 @@ export async function getTodayAttendance(
 export async function recordAttendance(
   name: string,
   date: string,
-  type: AttendanceType
+  type: AttendanceType,
+  role?: string
 ): Promise<{ at: string; already: boolean }> {
   const db = getClient()
   const { data, error } = await db
     .from('attendance')
-    .insert({ name, date, type })
+    .insert({ name, date, type, role: role ?? null })
     .select('at')
     .single()
   if (error) {
