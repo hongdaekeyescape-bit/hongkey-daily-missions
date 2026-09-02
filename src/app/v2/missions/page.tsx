@@ -742,19 +742,21 @@ function CompleteSheet({
           {msg && <p className="text-center text-sm text-pink-600">{msg}</p>}
 
           {files.length > 0 && (
-            <button
-              onClick={save}
-              disabled={busy}
-              className="rounded-full bg-mint-500 py-4 text-lg font-extrabold text-white shadow-lg disabled:opacity-40"
-            >
-              {busy
-                ? progress
-                  ? `업로드 중 ${progress.n}/${progress.total}…`
-                  : '저장 중…'
-                : mission.done
-                  ? `사진 ${files.length}장 추가`
-                  : `완료하기 ✅${files.length > 1 ? ` (${files.length}장)` : ''}`}
-            </button>
+            <div className="sticky bottom-0 -mx-5 -mb-8 border-t border-gray-100 bg-white/95 px-5 pb-6 pt-3 backdrop-blur">
+              <button
+                onClick={save}
+                disabled={busy}
+                className="w-full rounded-full bg-mint-500 py-4 text-lg font-extrabold text-white shadow-lg disabled:opacity-40"
+              >
+                {busy
+                  ? progress
+                    ? `업로드 중 ${progress.n}/${progress.total}…`
+                    : '저장 중…'
+                  : mission.done
+                    ? `사진 ${files.length}장 추가`
+                    : `완료하기 ✅${files.length > 1 ? ` (${files.length}장)` : ''}`}
+              </button>
+            </div>
           )}
 
           {mission.done && files.length === 0 && (
