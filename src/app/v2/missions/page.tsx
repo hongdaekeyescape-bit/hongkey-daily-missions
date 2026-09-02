@@ -398,7 +398,11 @@ function MissionCardItem({ m, onTap }: { m: Mission; onTap: () => void }) {
         <span className="w-1.5 shrink-0" style={{ backgroundColor: color }} />
         <span className="flex flex-1 flex-col gap-1 py-3 pr-3">
           <span className="flex flex-wrap items-center gap-1.5">
-            <span className={'text-base font-bold ' + (m.done ? 'text-ink-soft line-through' : '')}>
+            <span
+              className={
+                'text-base font-bold ' + (m.done ? 'text-ink-soft line-through decoration-mint-500 decoration-2' : '')
+              }
+            >
               {m.title}
             </span>
             {m.frequency === 'biweekly' && <Badge text="🔁 격주" color="#f0609a" />}
@@ -407,7 +411,7 @@ function MissionCardItem({ m, onTap }: { m: Mission; onTap: () => void }) {
             {m.is_assignment && <Badge text="약속" color="#ff7a66" />}
             {m.has_guide && <Badge text="📖 가이드" color="#1fb89d" />}
           </span>
-          <span className="text-xs text-ink-soft">
+          <span className={'text-xs text-ink-soft ' + (m.done ? 'line-through' : '')}>
             {CATEGORY_LABELS[m.category]}
             {m.description ? ` · ${m.description}` : ''}
           </span>
@@ -417,7 +421,15 @@ function MissionCardItem({ m, onTap }: { m: Mission; onTap: () => void }) {
             </span>
           )}
         </span>
-        <span className="flex items-center pr-4 text-2xl">{m.done ? '📸' : '⚪'}</span>
+        <span className="flex items-center pr-4">
+          {m.done ? (
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-mint-500 text-lg font-bold text-white shadow-sm">
+              ✓
+            </span>
+          ) : (
+            <span className="h-8 w-8 rounded-full border-2 border-dashed border-mint-300" />
+          )}
+        </span>
       </button>
     </li>
   )
