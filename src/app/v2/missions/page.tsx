@@ -56,6 +56,7 @@ function MissionsInner() {
   const [ranking, setRanking] = useState<RankEntry[] | null>(null)
   const [totalMisses, setTotalMisses] = useState(0)
   const [warning, setWarning] = useState<number | null>(null)
+  const [stamp, setStamp] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -229,7 +230,21 @@ function MissionsInner() {
             await load()
           }}
           onDone={() => setActive(null)}
+          onCompleted={(title) => {
+            setStamp(title)
+            setTimeout(() => setStamp(null), 1400)
+          }}
         />
+      )}
+
+      {stamp && (
+        <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="animate-stamp flex flex-col items-center gap-2 rounded-3xl bg-mint-500/95 px-10 py-8 text-center text-white shadow-2xl">
+            <div className="text-6xl">✅</div>
+            <div className="font-display text-2xl">완료!</div>
+            <div className="max-w-[220px] truncate text-sm opacity-90">{stamp}</div>
+          </div>
+        </div>
       )}
 
       {zoom && (
@@ -524,6 +539,7 @@ function CompleteSheet({
   onClose,
   onChanged,
   onDone,
+  onCompleted,
 }: {
   mission: Mission
   name: string
@@ -532,6 +548,7 @@ function CompleteSheet({
   onClose: () => void
   onChanged: () => Promise<void>
   onDone: () => void
+  onCompleted: (title: string) => void
 }) {
   const existing = mission.photos ?? []
   const [files, setFiles] = useState<File[]>([])
@@ -582,8 +599,10 @@ function CompleteSheet({
           return
         }
       }
+      const wasDone = mission.done
       await onChanged()
       onDone()
+      if (!wasDone) onCompleted(mission.title)
     } catch (e) {
       setMsg((e as Error).message ?? '업로드 중 문제가 생겼어요. 다시 시도해 주세요.')
       setBusy(false)
