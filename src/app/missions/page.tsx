@@ -213,8 +213,9 @@ function CompleteSheet({
   }, [files])
 
   function addFiles(list: FileList | null) {
-    if (!list) return
-    setFiles((prev) => [...prev, ...Array.from(list)])
+    if (!list || list.length === 0) return
+    const arr = Array.from(list)
+    setFiles((prev) => [...prev, ...arr])
   }
   function removeFile(i: number) {
     setFiles((prev) => prev.filter((_, idx) => idx !== i))

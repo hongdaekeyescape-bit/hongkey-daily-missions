@@ -569,8 +569,9 @@ function CompleteSheet({
   }, [files])
 
   function addFiles(list: FileList | null) {
-    if (!list) return
-    setFiles((prev) => [...prev, ...Array.from(list)])
+    if (!list || list.length === 0) return
+    const arr = Array.from(list) // 즉시 스냅샷(입력 value 초기화 전에 캡처)
+    setFiles((prev) => [...prev, ...arr])
   }
 
   async function save() {

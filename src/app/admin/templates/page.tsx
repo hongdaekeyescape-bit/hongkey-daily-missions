@@ -127,12 +127,13 @@ export default function TemplatesPage() {
   async function onExampleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const list = e.target.files
     if (!list || list.length === 0) return
+    const arr = Array.from(list) // value 초기화 전에 스냅샷
     e.target.value = ''
     setBusy(true)
     setError(null)
     try {
       const urls: string[] = []
-      for (const file of Array.from(list)) {
+      for (const file of arr) {
         urls.push(await uploadExamplePhoto(file, form.id ?? `new-${Date.now()}`))
       }
       setForm((f) => ({
