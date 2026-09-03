@@ -224,6 +224,7 @@ function MissionsInner() {
           mission={active}
           name={name}
           date={date}
+          role={role}
           onZoom={setZoom}
           onClose={() => setActive(null)}
           onChanged={async () => {
@@ -540,10 +541,12 @@ function CompleteSheet({
   onChanged,
   onDone,
   onCompleted,
+  role,
 }: {
   mission: Mission
   name: string
   date: string
+  role: Role
   onZoom: (u: string) => void
   onClose: () => void
   onChanged: () => Promise<void>
@@ -602,7 +605,21 @@ function CompleteSheet({
       const wasDone = mission.done
       await onChanged()
       onDone()
-      if (!wasDone) onCompleted(mission.title)
+      if (!wasDone) {
+        onCompleted(mission.title)
+        // 텔레그램 알림(완료 시에만) — 실패해도 무시
+        fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            title: mission.title,
+            role: ROLE_LABELS[role],
+            photoUrl: all[0],
+            at: `${date} ${hhmmSeoul(new Date().toISOString())}`,
+          }),
+        }).catch(() => {})
+      }
     } catch (e) {
       setMsg((e as Error).message ?? '업로드 중 문제가 생겼어요. 다시 시도해 주세요.')
       setBusy(false)
