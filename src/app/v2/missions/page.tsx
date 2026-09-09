@@ -616,7 +616,7 @@ function CompleteSheet({
             name,
             title: mission.title,
             role: ROLE_LABELS[role],
-            photoUrl: all[0],
+            photoUrls: all,
             at: `${date} ${hhmmSeoul(new Date().toISOString())}`,
           }),
         }).catch(() => {})

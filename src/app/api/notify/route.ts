@@ -12,15 +12,19 @@ export async function POST(req: Request) {
   let name = ''
   let title = ''
   let role = ''
-  let photoUrl = ''
+  let photos: string[] = []
   let at = ''
   try {
     const b = await req.json()
     name = String(b?.name ?? '').slice(0, 40)
     title = String(b?.title ?? '').slice(0, 120)
     role = String(b?.role ?? '').slice(0, 20)
-    photoUrl = String(b?.photoUrl ?? '').slice(0, 500)
     at = String(b?.at ?? '').slice(0, 40)
+    const raw = Array.isArray(b?.photoUrls) ? b.photoUrls : b?.photoUrl ? [b.photoUrl] : []
+    photos = raw
+      .map((u: unknown) => String(u ?? ''))
+      .filter((u: string) => /^https?:\/\//.test(u))
+      .slice(0, 10) // 텔레그램 앨범 최대 10장
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 })
   }
@@ -28,18 +32,31 @@ export async function POST(req: Request) {
 
   const caption = `✅ 업무 완료\n• ${title}${role ? ` (${role})` : ''}\n• 완료자: ${name}${at ? `\n• ${at}` : ''}`
 
-  try {
-    const isHttp = /^https?:\/\//.test(photoUrl)
-    const api = `https://api.telegram.org/bot${token}/${isHttp ? 'sendPhoto' : 'sendMessage'}`
-    const payload = isHttp
-      ? { chat_id: chatId, photo: photoUrl, caption }
-      : { chat_id: chatId, text: caption }
-    const r = await fetch(api, {
+  const url = (method: string) => `https://api.telegram.org/bot${token}/${method}`
+  const send = async (method: string, payload: object) => {
+    const r = await fetch(url(method), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    const data = await r.json()
+    return r.json()
+  }
+
+  try {
+    let data
+    if (photos.length >= 2) {
+      // 여러 장 → 앨범(캡션은 첫 장에)
+      const media = photos.map((p, i) => ({
+        type: 'photo',
+        media: p,
+        ...(i === 0 ? { caption } : {}),
+      }))
+      data = await send('sendMediaGroup', { chat_id: chatId, media })
+    } else if (photos.length === 1) {
+      data = await send('sendPhoto', { chat_id: chatId, photo: photos[0], caption })
+    } else {
+      data = await send('sendMessage', { chat_id: chatId, text: caption })
+    }
     if (!data.ok) return NextResponse.json({ ok: false, error: data.description }, { status: 502 })
     return NextResponse.json({ ok: true })
   } catch {
