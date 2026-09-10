@@ -840,9 +840,12 @@ function RankingList({ entries, me }: { entries: RankEntry[] | null; me: string 
                 <span className="w-8 shrink-0 text-center font-display">{medal(e.rank)}</span>
                 <span className="flex-1 truncate">
                   {e.name}
+                  {e.isManager && ' 👔'}
                   {mine && ' (나)'}
                 </span>
-                <span className="text-xs text-ink-soft">{e.tasks}건</span>
+                <span className="text-xs text-ink-soft">
+                  {e.isManager ? '관리자' : `${e.tasks}건`}
+                </span>
                 <span className="w-12 text-right font-display text-mint-600">{e.points.toFixed(2)}</span>
               </li>
             )

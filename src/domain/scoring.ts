@@ -1,7 +1,7 @@
 import type { Assignment, Completion, Role, TaskTemplate } from './types'
 import { isDueOn } from './shift'
 import { buildMissions } from './missions'
-import { isExemptManager } from './managers'
+import { isExemptManager, MANAGER_EXEMPT } from './managers'
 import { weekdaySeoul, weekOfMonth } from '@/lib/time'
 
 /** 그날 존재하는 업무 수(모든 근무형태 합, 협업은 1개). 주기 규칙 반영. */
@@ -22,6 +22,7 @@ export interface RankEntry {
   points: number
   tasks: number
   rank: number
+  isManager?: boolean
 }
 
 /**
@@ -40,8 +41,10 @@ export function computeRanking(
   }
 
   const acc = new Map<string, { points: number; tasks: number }>()
+  const activeDates = new Set<string>()
   for (const c of completions) {
-    if (isExemptManager(c.done_by)) continue // 관리자 예외: 순위 제외
+    activeDates.add(c.date)
+    if (isExemptManager(c.done_by)) continue // 관리자는 실제 완료 대신 만점 처리
     const n = N(c.date)
     if (n <= 0) continue
     const e = acc.get(c.done_by) ?? { points: 0, tasks: 0 }
@@ -50,14 +53,32 @@ export function computeRanking(
     acc.set(c.done_by, e)
   }
 
+  // 관리자 만점 처리: 활동한(업무가 있던) 모든 날을 완벽 완료로 간주
+  let mgrPoints = 0
+  let mgrTasks = 0
+  for (const d of activeDates) {
+    const n = N(d)
+    if (n > 0) {
+      mgrPoints += 1
+      mgrTasks += n
+    }
+  }
+
   const arr: RankEntry[] = [...acc.entries()].map(([name, v]) => ({
     name,
     points: Math.round(v.points * 100) / 100,
     tasks: v.tasks,
     rank: 0,
   }))
+  for (const name of MANAGER_EXEMPT) {
+    arr.push({ name, points: mgrPoints, tasks: mgrTasks, rank: 0, isManager: true })
+  }
   arr.sort(
-    (a, b) => b.points - a.points || b.tasks - a.tasks || a.name.localeCompare(b.name, 'ko')
+    (a, b) =>
+      b.points - a.points ||
+      Number(!!b.isManager) - Number(!!a.isManager) ||
+      b.tasks - a.tasks ||
+      a.name.localeCompare(b.name, 'ko')
   )
   let rank = 0
   let prev = Number.POSITIVE_INFINITY

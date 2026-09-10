@@ -44,26 +44,30 @@ describe('computeRanking', () => {
     // 그날 N=4 (t1..t4 all always, weekday3)
     const templates = ['t1', 't2', 't3', 't4'].map((id) => T({ id }))
     const completions = [C('철수', 't1'), C('철수', 't2'), C('철수', 't3'), C('영희', 't4')]
-    const rank = computeRanking(completions, templates, [])
+    const rank = computeRanking(completions, templates, []).filter((r) => !r.isManager)
     expect(rank[0].name).toBe('철수')
     expect(rank[0].points).toBe(0.75) // 3/4
-    expect(rank[0].rank).toBe(1)
     expect(rank[1].name).toBe('영희')
     expect(rank[1].points).toBe(0.25)
-    expect(rank[1].rank).toBe(2)
   })
 
-  it('관리자 예외(박찬원)는 순위에서 제외', () => {
-    const templates = [T({ id: 't1' }), T({ id: 't2' })]
+  it('관리자(박찬원)는 만점 처리로 순위 상단에 표시', () => {
+    const templates = [T({ id: 't1' }), T({ id: 't2' })] // N=2, 활동일 1일
     const completions = [C('철수', 't1'), C('박찬원', 't2')]
     const rank = computeRanking(completions, templates, [])
-    expect(rank.map((r) => r.name)).toEqual(['철수'])
+    const chulsu = rank.find((r) => r.name === '철수')!
+    const mgr = rank.find((r) => r.name === '박찬원')!
+    expect(mgr.isManager).toBe(true)
+    expect(mgr.points).toBe(1) // 활동일 1일 × 만점(1.0)
+    expect(chulsu.points).toBe(0.5)
+    expect(mgr.rank).toBeLessThan(chulsu.rank) // 관리자가 위
+    expect(rank.find((r) => r.name === '옥정호')?.isManager).toBe(true) // 둘 다 표시
   })
 
   it('여러 날 누적', () => {
     const templates = [T({ id: 't1' }), T({ id: 't2' })] // N=2
     const completions = [C('철수', 't1', '2026-08-19'), C('철수', 't1', '2026-08-26')]
-    const rank = computeRanking(completions, templates, [])
+    const rank = computeRanking(completions, templates, []).filter((r) => !r.isManager)
     expect(rank[0].points).toBe(1) // 0.5 + 0.5
     expect(rank[0].tasks).toBe(2)
   })
