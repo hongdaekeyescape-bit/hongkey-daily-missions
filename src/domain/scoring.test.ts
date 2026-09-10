@@ -51,17 +51,15 @@ describe('computeRanking', () => {
     expect(rank[1].points).toBe(0.25)
   })
 
-  it('관리자(박찬원)는 만점 처리로 순위 상단에 표시', () => {
+  it('관리자(옥정호)는 만점 처리로 점수순 표시, 박찬원은 없음', () => {
     const templates = [T({ id: 't1' }), T({ id: 't2' })] // N=2, 활동일 1일
-    const completions = [C('철수', 't1'), C('박찬원', 't2')]
+    const completions = [C('철수', 't1')]
     const rank = computeRanking(completions, templates, [])
-    const chulsu = rank.find((r) => r.name === '철수')!
-    const mgr = rank.find((r) => r.name === '박찬원')!
+    const mgr = rank.find((r) => r.name === '옥정호')!
     expect(mgr.isManager).toBe(true)
     expect(mgr.points).toBe(1) // 활동일 1일 × 만점(1.0)
-    expect(chulsu.points).toBe(0.5)
-    expect(mgr.rank).toBeLessThan(chulsu.rank) // 관리자가 위
-    expect(rank.find((r) => r.name === '옥정호')?.isManager).toBe(true) // 둘 다 표시
+    expect(rank.find((r) => r.name === '철수')!.points).toBe(0.5)
+    expect(rank.find((r) => r.name === '박찬원')).toBeUndefined() // 제거됨
   })
 
   it('여러 날 누적', () => {

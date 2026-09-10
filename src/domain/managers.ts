@@ -5,7 +5,7 @@
  * - 클린 순위에서 제외(청소 경쟁 대상 아님)
  * - 본인 미션 화면은 자동 완료로 표시
  */
-export const MANAGER_EXEMPT = new Set<string>(['옥정호', '박찬원'])
+export const MANAGER_EXEMPT = new Set<string>(['옥정호'])
 
 export function isExemptManager(name: string): boolean {
   return MANAGER_EXEMPT.has(name)

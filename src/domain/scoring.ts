@@ -74,11 +74,7 @@ export function computeRanking(
     arr.push({ name, points: mgrPoints, tasks: mgrTasks, rank: 0, isManager: true })
   }
   arr.sort(
-    (a, b) =>
-      b.points - a.points ||
-      Number(!!b.isManager) - Number(!!a.isManager) ||
-      b.tasks - a.tasks ||
-      a.name.localeCompare(b.name, 'ko')
+    (a, b) => b.points - a.points || b.tasks - a.tasks || a.name.localeCompare(b.name, 'ko')
   )
   let rank = 0
   let prev = Number.POSITIVE_INFINITY
