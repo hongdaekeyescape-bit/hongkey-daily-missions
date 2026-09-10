@@ -1,6 +1,7 @@
 import type { Assignment, Completion, Role, TaskTemplate } from './types'
 import { isDueOn } from './shift'
 import { buildMissions } from './missions'
+import { isExemptManager } from './managers'
 import { weekdaySeoul, weekOfMonth } from '@/lib/time'
 
 /** 그날 존재하는 업무 수(모든 근무형태 합, 협업은 1개). 주기 규칙 반영. */
@@ -40,6 +41,7 @@ export function computeRanking(
 
   const acc = new Map<string, { points: number; tasks: number }>()
   for (const c of completions) {
+    if (isExemptManager(c.done_by)) continue // 관리자 예외: 순위 제외
     const n = N(c.date)
     if (n <= 0) continue
     const e = acc.get(c.done_by) ?? { points: 0, tasks: 0 }
@@ -102,6 +104,7 @@ export function computeMisses(input: {
   const out = new Map<string, Set<string>>()
   for (const a of attendanceIns) {
     if (!a.role) continue
+    if (isExemptManager(a.name)) continue // 관리자 예외: 미이행 없음
     if (missed(a.date, a.role)) {
       if (!out.has(a.name)) out.set(a.name, new Set())
       out.get(a.name)!.add(a.date)

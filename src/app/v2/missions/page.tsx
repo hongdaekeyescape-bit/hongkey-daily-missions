@@ -26,6 +26,7 @@ import { listAllCompletions } from '@/data/completions'
 import { listAllAssignments } from '@/data/assignments'
 import { getBoolSetting } from '@/data/settings'
 import { computeRanking, computeMisses, type RankEntry } from '@/domain/scoring'
+import { isExemptManager } from '@/domain/managers'
 import { listActiveTemplates } from '@/data/templates'
 import { listAssignmentsByDate } from '@/data/assignments'
 import {
@@ -65,9 +66,22 @@ function MissionsInner() {
         listAssignmentsByDate(date),
         listCompletionsByDate(date),
       ])
-      setBoard(
-        buildMissions({ date, weekday, weekOfMonth: wom, role, templates, assignments, completions })
-      )
+      const b = buildMissions({
+        date,
+        weekday,
+        weekOfMonth: wom,
+        role,
+        templates,
+        assignments,
+        completions,
+      })
+      // 관리자 예외: 본인 화면은 모든 업무를 완료로 표시
+      if (isExemptManager(name)) {
+        const items = b.items.map((i) => ({ ...i, done: true, done_by: i.done_by ?? name }))
+        setBoard({ items, doneCount: items.length, totalCount: items.length })
+      } else {
+        setBoard(b)
+      }
     } catch (e) {
       setError((e as Error).message ?? '미션을 불러오지 못했어요.')
     }
@@ -146,6 +160,15 @@ function MissionsInner() {
         </div>
         <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-600">v2</span>
       </header>
+
+      {isExemptManager(name) && (
+        <div className="rounded-2xl bg-mint-500 p-4 text-center text-white shadow-sm">
+          <div className="font-display text-lg">👔 관리자 계정</div>
+          <div className="text-sm opacity-90">
+            오늘 근무 시 업무는 <b>자동 완료</b>로 처리돼요. 체크 안 하셔도 됩니다.
+          </div>
+        </div>
+      )}
 
       {canAttend(name) && (
         <AttendanceCard name={name} date={date} role={role} misses={totalMisses} />

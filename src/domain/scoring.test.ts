@@ -53,6 +53,13 @@ describe('computeRanking', () => {
     expect(rank[1].rank).toBe(2)
   })
 
+  it('관리자 예외(박찬원)는 순위에서 제외', () => {
+    const templates = [T({ id: 't1' }), T({ id: 't2' })]
+    const completions = [C('철수', 't1'), C('박찬원', 't2')]
+    const rank = computeRanking(completions, templates, [])
+    expect(rank.map((r) => r.name)).toEqual(['철수'])
+  })
+
   it('여러 날 누적', () => {
     const templates = [T({ id: 't1' }), T({ id: 't2' })] // N=2
     const completions = [C('철수', 't1', '2026-08-19'), C('철수', 't1', '2026-08-26')]
@@ -79,6 +86,21 @@ describe('computeMisses', () => {
     expect(misses.get('철수')?.has('2026-08-19')).toBe(true)
     expect(misses.get('영희')?.has('2026-08-19')).toBe(true)
     expect(misses.has('민수')).toBe(false)
+  })
+
+  it('관리자 예외(옥정호)는 근무조 미완료여도 미이행 없음', () => {
+    const completions = [C('철수', 't1')] // t2 미완료
+    const misses = computeMisses({
+      attendanceIns: [
+        { name: '옥정호', date: '2026-08-19', role: 'middle' }, // 관리자 → 제외
+        { name: '철수', date: '2026-08-19', role: 'middle' },
+      ],
+      templates,
+      assignments: [],
+      completions,
+    })
+    expect(misses.has('옥정호')).toBe(false)
+    expect(misses.get('철수')?.has('2026-08-19')).toBe(true)
   })
 
   it('다 완료면 미이행 없음', () => {
