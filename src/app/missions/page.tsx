@@ -20,6 +20,7 @@ import {
   listCompletionsByDate,
 } from '@/data/completions'
 import { uploadMissionPhoto } from '@/data/photos'
+import { compressImage } from '@/lib/image'
 
 const VALID_ROLES: Role[] = ['open', 'middle', 'close']
 
@@ -228,7 +229,7 @@ function CompleteSheet({
     try {
       const urls: string[] = []
       for (const f of files) {
-        urls.push(await uploadMissionPhoto(f, date, mission.source_id))
+        urls.push(await uploadMissionPhoto(await compressImage(f), date, mission.source_id))
       }
       const res = await addCompletion({
         date,
