@@ -1,6 +1,10 @@
-import { redirect } from 'next/navigation'
+'use client'
 
-// 옛 미션 화면은 v2로 통일.
+import { useEffect } from 'react'
+
 export default function MissionsRedirect() {
-  redirect('/v2')
+  useEffect(() => {
+    window.location.replace('/v2')
+  }, [])
+  return <p className="py-24 text-center text-sm text-ink-soft">이동 중…</p>
 }

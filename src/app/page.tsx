@@ -1,6 +1,11 @@
-import { redirect } from 'next/navigation'
+'use client'
 
-// 모든 접속을 v2로 통일(압축·텔레그램 알림 포함). 옛 화면 코드는 git 이력에 보존.
+import { useEffect } from 'react'
+
+// 주 리다이렉트는 next.config redirects(엣지). 이건 폴백.
 export default function Home() {
-  redirect('/v2')
+  useEffect(() => {
+    window.location.replace('/v2')
+  }, [])
+  return <p className="py-24 text-center text-sm text-ink-soft">이동 중…</p>
 }
