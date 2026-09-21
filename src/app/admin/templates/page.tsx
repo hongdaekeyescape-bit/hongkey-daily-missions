@@ -13,6 +13,8 @@ import {
   deleteTemplate,
   listAllTemplates,
   upsertTemplate,
+  listTemplateChanges,
+  type TemplateChange,
 } from '@/data/templates'
 import { uploadExamplePhoto } from '@/data/photos'
 
@@ -56,10 +58,13 @@ export default function TemplatesPage() {
   const [fScope, setFScope] = useState<Scope | 'all'>('all')
   const [fWeekday, setFWeekday] = useState(0) // 0 = 전체
   const [fQuery, setFQuery] = useState('')
+  const [changes, setChanges] = useState<TemplateChange[]>([])
+  const [showLog, setShowLog] = useState(false)
 
   async function load() {
     try {
       setRows(await listAllTemplates())
+      setChanges(await listTemplateChanges(30).catch(() => []))
     } catch (e) {
       setError((e as Error).message)
     }
@@ -389,6 +394,48 @@ export default function TemplatesPage() {
             </div>
           )
         })}
+      </section>
+
+      {/* 최근 변경 내역 */}
+      <section className="rounded-2xl bg-white/70 p-3 shadow-sm">
+        <button
+          onClick={() => setShowLog((v) => !v)}
+          className="flex w-full items-center justify-between text-sm font-extrabold text-ink-soft"
+        >
+          <span>🕓 최근 변경 내역 ({changes.length})</span>
+          <span className="text-xs">{showLog ? '▲ 접기' : '▼ 펼치기'}</span>
+        </button>
+        {showLog && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {changes.length === 0 ? (
+              <li className="text-xs text-ink-soft">기록 없음(이후 변경부터 쌓입니다)</li>
+            ) : (
+              changes.map((c, i) => (
+                <li key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-24 shrink-0 text-ink-soft">
+                    {c.at.slice(5, 16).replace('T', ' ')}
+                  </span>
+                  <span
+                    className={
+                      'rounded px-1.5 py-0.5 font-bold text-white ' +
+                      (c.action === 'delete'
+                        ? 'bg-pink-500'
+                        : c.action === 'create'
+                          ? 'bg-mint-600'
+                          : 'bg-mint-400')
+                    }
+                  >
+                    {c.action === 'delete' ? '삭제' : c.action === 'create' ? '추가' : '수정'}
+                  </span>
+                  <span className="text-ink-soft">
+                    {SCOPE_LABELS[c.scope as Scope] ?? c.scope} {WEEKDAYS[c.weekday - 1]}
+                  </span>
+                  <span className="truncate font-semibold">{c.title}</span>
+                </li>
+              ))
+            )}
+          </ul>
+        )}
       </section>
     </div>
   )

@@ -1,6 +1,7 @@
 /**
- * task_templates를 엑셀 시드로 채운다. (idempotent: 기존 전체 삭제 후 재삽입)
+ * task_templates를 엑셀 시드로 채운다. (비파괴형: 이미 데이터가 있으면 건너뜀)
  * 실행: npm run seed  (환경변수 필요: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+ * 강제로 전체 초기화하려면: npm run seed -- --force  (관리자 변경 전부 삭제됨, 주의!)
  */
 import { getServiceClient } from '../src/lib/supabase'
 import { SEED_TEMPLATES } from '../src/domain/seedData'
@@ -14,9 +15,30 @@ async function main() {
     return
   }
 
+  const force = process.argv.includes('--force') || process.env.SEED_FORCE === '1'
   const db = getServiceClient()
-  const { error: delErr } = await db.from('task_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-  if (delErr) throw delErr
+
+  // 비파괴 가드: 이미 데이터가 있으면 관리자 변경 보호를 위해 중단
+  const { count, error: cntErr } = await db
+    .from('task_templates')
+    .select('*', { count: 'exact', head: true })
+  if (cntErr) throw cntErr
+  if ((count ?? 0) > 0 && !force) {
+    console.log(
+      `⚠️ 이미 ${count}개 템플릿이 있어 시드를 건너뜁니다(관리자 변경 보호).\n` +
+        `   정말 전체 초기화하려면: npm run seed -- --force`
+    )
+    return
+  }
+
+  if (force && (count ?? 0) > 0) {
+    console.log(`--force: 기존 ${count}개 삭제 후 재삽입`)
+    const { error: delErr } = await db
+      .from('task_templates')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (delErr) throw delErr
+  }
 
   const { error: insErr } = await db.from('task_templates').insert(
     SEED_TEMPLATES.map((t) => ({
