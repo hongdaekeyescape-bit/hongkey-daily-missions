@@ -60,6 +60,15 @@ export default function TemplatesPage() {
   const [fQuery, setFQuery] = useState('')
   const [changes, setChanges] = useState<TemplateChange[]>([])
   const [showLog, setShowLog] = useState(false)
+  // 수정 중인 원래 업무(요일·근무조 이동 감지용)
+  const [orig, setOrig] = useState<{ scope: Scope; weekday: number; title: string } | null>(null)
+  const where = (scope: Scope, weekday: number) => `${WEEKDAYS[weekday - 1]} ${SCOPE_LABELS[scope]}`
+  const moved = !!orig && (orig.scope !== form.scope || orig.weekday !== form.weekday)
+
+  function resetForm() {
+    setForm({ ...EMPTY })
+    setOrig(null)
+  }
 
   async function load() {
     try {
@@ -73,13 +82,25 @@ export default function TemplatesPage() {
     load()
   }, [])
 
-  async function save() {
+  // asNew=true면 수정 중이어도 원본은 그대로 두고 새 업무로 추가
+  async function save(asNew = false) {
     if (!form.title.trim()) return
+    const id = asNew ? undefined : form.id
+    if (id && moved && orig) {
+      const ok = confirm(
+        `'${orig.title}' 업무가 [${where(orig.scope, orig.weekday)}]에서 빠지고 [${where(form.scope, form.weekday)}]로 옮겨집니다.
+
+` +
+          `둘 다 남기려면 '취소'를 누르고 '새 업무로 추가'를 쓰세요.
+옮길까요?`
+      )
+      if (!ok) return
+    }
     setBusy(true)
     setError(null)
     try {
       await upsertTemplate({
-        id: form.id,
+        id,
         scope: form.scope,
         weekday: form.weekday,
         title: form.title.trim(),
@@ -93,7 +114,7 @@ export default function TemplatesPage() {
         sort: 0,
         active: true,
       })
-      setForm({ ...EMPTY })
+      resetForm()
       await load()
     } catch (e) {
       setError((e as Error).message)
@@ -109,6 +130,7 @@ export default function TemplatesPage() {
   }
 
   function edit(t: TaskTemplate) {
+    setOrig({ scope: t.scope, weekday: t.weekday, title: t.title })
     setForm({
       id: t.id,
       scope: t.scope,
@@ -173,6 +195,20 @@ export default function TemplatesPage() {
       {/* 추가/수정 폼 */}
       <section className="rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="mb-3 font-extrabold">{form.id ? '업무 수정' : '업무 추가'}</h2>
+        {form.id && orig && (
+          <div className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+            ✏️ <b>[{where(orig.scope, orig.weekday)}] {orig.title}</b> 수정 중이에요.
+            <br />
+            &lsquo;수정 저장&rsquo;은 이 업무 자체를 바꿔요. 다른 요일·근무조에 <b>하나 더</b> 만들려면
+            &lsquo;새 업무로 추가&rsquo;를 누르세요.
+            {moved && (
+              <div className="mt-1 font-bold text-pink-600">
+                ⚠️ 요일/근무조가 바뀌었어요 — 수정 저장 시 [{where(orig.scope, orig.weekday)}]에서는
+                사라집니다.
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-2">
             <select
@@ -273,9 +309,9 @@ export default function TemplatesPage() {
             </label>
           </div>
           {error && <p className="text-sm text-pink-600">{error}</p>}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={save}
+              onClick={() => save()}
               disabled={busy || !form.title.trim()}
               className="flex-1 rounded-full bg-mint-500 py-3 font-bold text-white disabled:opacity-40"
             >
@@ -283,7 +319,16 @@ export default function TemplatesPage() {
             </button>
             {form.id && (
               <button
-                onClick={() => setForm({ ...EMPTY })}
+                onClick={() => save(true)}
+                disabled={busy || !form.title.trim()}
+                className="flex-1 rounded-full border-2 border-mint-500 py-3 font-bold text-mint-700 disabled:opacity-40"
+              >
+                ＋ 새 업무로 추가
+              </button>
+            )}
+            {form.id && (
+              <button
+                onClick={resetForm}
                 className="rounded-full border-2 border-gray-200 px-4 py-3 text-sm font-bold text-ink-soft"
               >
                 취소
