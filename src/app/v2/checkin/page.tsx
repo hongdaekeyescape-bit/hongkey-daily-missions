@@ -6,6 +6,7 @@ import { guessRole } from '@/domain/shift'
 import { todaySeoul, nowHourSeoul, hhmmSeoul } from '@/lib/time'
 import { canAttend } from '@/lib/attendanceConfig'
 import { listActiveStaff, type Staff } from '@/data/staff'
+import { isExemptManager } from '@/domain/managers'
 import {
   getAttendanceForDate,
   recordAttendance,
@@ -32,7 +33,8 @@ export default function CheckinPage() {
         if (!map[r.name]) map[r.name] = {}
         map[r.name][r.type] = r.at
       }
-      setStaff(s.filter((x) => canAttend(x.name)))
+      // 관리자(옥정호)는 출퇴근 인증 대상 아님
+      setStaff(s.filter((x) => canAttend(x.name) && !isExemptManager(x.name)))
       setAtt(map)
     } catch (e) {
       setError((e as Error).message)
